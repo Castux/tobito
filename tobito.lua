@@ -65,6 +65,27 @@ local function int_to_state(i, s)
 	return s
 end
 
+local function state_winner(s)
+	
+	-- Invasion
+	
+	if s[0] == Bottom and s[1] == Bottom and s[2] == Bottom then
+		return Bottom
+	elseif s[12] == Top and s[13] == Top and s[14] == Top then
+		return Top
+	end
+	
+	-- Passivity
+	
+	if s.next_player == Top and s[12] ~= Empty and s[13] ~= Empty and s[14] ~= Empty then
+		return Top
+	elseif s.next_player == Bottom and s[0] ~= Empty and s[1] ~= Empty and s[2] ~= Empty then
+		return Bottom
+	end
+	
+	return nil
+end
+
 local function moves_from_cell(cell)
 
 	local row,col = cell // 3, cell % 3
@@ -157,6 +178,8 @@ end
 
 local function moves_from_cell(s, cell)
 
+	-- TODO: prevent relocating a pawn that reached the goal already
+
 	return coroutine.wrap(function()
 			for _,dir in ipairs(Moves[cell]) do
 
@@ -188,6 +211,12 @@ end
 
 local function valid_moves(s)
 	return coroutine.wrap(function()
+			
+			local w = state_winner(s)
+			if w then
+				return
+			end
+			
 			for cell in active_pawns(s) do
 				for move in moves_from_cell(s, cell) do
 					coroutine.yield(move)
@@ -292,18 +321,22 @@ local function compute_graph()
 	return graph
 end
 
-local function save_values(values)
+local function save_graph(graph)
 
-	local fp = io.open("values.lua", "w")
+	local fp = io.open("graph.lua", "w")
 	fp:write "return {\n"
-	for k,v in pairs(values) do
+	for k,v in pairs(graph) do
 		fp:write(string.format("[%d] = { children = {%s}, parents = {%s} },\n", k, table.concat(v.children, ","), table.concat(v.parents, ",")))
 	end
 	fp:write "}"
 	fp:close()
 end
 
---save_values(compute_graph())
+--save_graph(compute_graph())
+
+
+local G = require "graph"
+print(#G[state_to_int(start_state())].parents)
 
 --[[ Backwards analysis ]]
 
@@ -360,11 +393,11 @@ local function analysis()
 	local R = {}
 	local tmp_state = {}
 	local queue = new_queue()
-	local Values = require "values"
+	local Graph = require "graph"
 
 	-- Initialize
 
-	for int,entry in pairs(Values) do
+	for int,entry in pairs(Graph) do
 
 		int_to_state(int, tmp_state)
 		local w = win_state(tmp_state)
@@ -387,7 +420,7 @@ local function analysis()
 
 		local current_kind,current_value = decode(R[int])
 
-		for _,parent in ipairs(Values[int].parents) do
+		for _,parent in ipairs(Graph[int].parents) do
 			local parent_kind, parent_amount = decode(R[parent])
 
 			if parent_kind == Count then
@@ -417,6 +450,75 @@ local function analysis()
 	return R
 end
 
+
+local function distances_from_state(s_int)
+
+	local Graph = require "graph"
+	
+	local distances = {}
+	local to_treat = {}
+	local treated = {}
+	
+	distances[s_int] = 0
+	to_treat[s_int] = true
+	
+	while true do
+		
+		local did_one = false
+		
+		for k in pairs(to_treat) do
+			for _,parent in ipairs(Graph[k].parents) do
+				if not treated[parent] then					
+					distances[parent] = math.min(distances[parent] or math.maxinteger, 1 + distances[k])
+					to_treat[parent] = true
+				end
+			end
+		
+			to_treat[k] = nil
+			treated[k] = true
+			did_one = true
+		end
+		
+		if not did_one then break end
+	end
+	
+	return distances
+end
+
+--[[
+
+local d = distances_from_state(state_to_int(start_state()))
+for k,v in pairs(d) do
+	if v == 2 then
+		draw_state(int_to_state(k))
+	end
+end
+
+]]
+
+local function heatmap()
+	
+	local top_wins = {}
+	local bottom_wins = {}
+	
+	-- Find win states
+	
+	local tmp_state = {}
+	local Graph = require "graph"
+	
+	for int,entry in pairs(Graph) do
+
+		int_to_state(int, tmp_state)
+		local w = state_winner(tmp_state)
+
+		if w == Top then
+			table.insert(top_wins, int)
+		elseif w == Bottom then
+			table.insert(bottom_wins, int)
+		end
+	end
+end
+--[[
 local R = analysis()
 local counts = {[Loss] = 0, [Win] = 0, [Count] = 0}
 for k,v in pairs(R) do
@@ -427,3 +529,4 @@ end
 for k,v in pairs(counts) do
 	print(k,v / 200200)
 end
+--]]
