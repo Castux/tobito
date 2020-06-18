@@ -208,16 +208,13 @@ local function moves_from_cell(s, cell)
 
 						for reloc in relocations(s, #jumped, dest) do
 							local move = {cell, dest}
-							local valid_reloc = true
 
 							for i = 1,#jumped do
 								table.insert(move, jumped[i])
 								table.insert(move, reloc[i])
 							end
-
-							if valid_reloc then
-								coroutine.yield(move)
-							end
+							
+							coroutine.yield(move)
 						end
 						
 						::skip::
