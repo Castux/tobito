@@ -20,6 +20,7 @@ local function start_state()
 	end
 
 	s.next_player = Top
+	s.start = true
 
 	return s
 end
@@ -36,7 +37,7 @@ local function draw_state(s)
 			io.write "\n"
 		end
 	end
-	print("Next:", s.next_player == Top and "Top" or "Bottom")
+	print("Next:", s.next_player == Top and "Top" or "Bottom", s.start and "start" or "")
 end
 
 local function state_to_int(s)
@@ -48,6 +49,7 @@ local function state_to_int(s)
 	end
 
 	i = i | (s.next_player << 30)
+	i = i | ((s.start and 1 or 0) << 32)
 
 	return i
 end
@@ -61,11 +63,16 @@ local function int_to_state(i, s)
 	end
 
 	s.next_player = (i >> 30) & 0x3
+	s.start = (i >> 32) == 1
 
 	return s
 end
 
 local function state_winner(s)
+	
+	if s.start then
+		return nil
+	end
 	
 	-- Invasion
 	
@@ -233,6 +240,7 @@ local function apply_move(s, m)
 	end
 
 	s.next_player = s.next_player == Top and Bottom or Top
+	s.start = false
 end
 
 
@@ -285,6 +293,8 @@ local function all_states()
 			end
 		end
 	end
+	
+	table.insert(states, state_to_int(start_state()))
 
 	return states
 end
@@ -333,10 +343,6 @@ local function save_graph(graph)
 end
 
 --save_graph(compute_graph())
-
-
-local G = require "graph"
-print(#G[state_to_int(start_state())].parents)
 
 --[[ Backwards analysis ]]
 
