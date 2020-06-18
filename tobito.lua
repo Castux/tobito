@@ -161,16 +161,23 @@ local function relocations(s, num, avoid)
 	return coroutine.wrap(function() rec(1) end)
 end
 
+local function movable_pawn(s, cell)
+	
+	if s[cell] == Top then
+		return cell < 12
+	elseif s[cell] == Bottom then
+		return cell > 2
+	end
+	
+	error "Not a pawn"
+end
+
 local function active_pawn(s, cell)
 	if s.next_player ~= s[cell] then
 		return false
 	end
 
-	if s.next_player == Top then
-		return cell < 12
-	else
-		return cell > 2
-	end
+	return movable_pawn(s, cell)
 end
 
 local function active_pawns(s)
@@ -185,8 +192,6 @@ end
 
 local function moves_from_cell(s, cell)
 
-	-- TODO: prevent relocating a pawn that reached the goal already
-
 	return coroutine.wrap(function()
 			for _,dir in ipairs(Moves[cell]) do
 
@@ -197,13 +202,21 @@ local function moves_from_cell(s, cell)
 
 						for reloc in relocations(s, #jumped, dest) do
 							local move = {cell, dest}
+							local valid_reloc = true
 
 							for i = 1,#jumped do
+								
+								if not movable_pawn(s, jumped[i]) then
+									valid_reloc = false
+								end
+								
 								table.insert(move, jumped[i])
 								table.insert(move, reloc[i])
 							end
 
-							coroutine.yield(move)
+							if valid_reloc then
+								coroutine.yield(move)
+							end
 						end
 
 						break
@@ -456,7 +469,6 @@ local function analysis()
 	return R
 end
 
-
 local function distances_from_state(s_int)
 
 	local Graph = require "graph"
@@ -490,17 +502,6 @@ local function distances_from_state(s_int)
 	
 	return distances
 end
-
---[[
-
-local d = distances_from_state(state_to_int(start_state()))
-for k,v in pairs(d) do
-	if v == 2 then
-		draw_state(int_to_state(k))
-	end
-end
-
-]]
 
 local function heatmap()
 	
