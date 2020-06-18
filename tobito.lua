@@ -199,17 +199,18 @@ local function moves_from_cell(s, cell)
 
 				for i,dest in ipairs(dir) do
 					if s[dest] == Empty then
+						
+						for _,j in ipairs(jumped) do
+							if not movable_pawn(s, j) then
+								goto skip
+							end
+						end
 
 						for reloc in relocations(s, #jumped, dest) do
 							local move = {cell, dest}
 							local valid_reloc = true
 
 							for i = 1,#jumped do
-								
-								if not movable_pawn(s, jumped[i]) then
-									valid_reloc = false
-								end
-								
 								table.insert(move, jumped[i])
 								table.insert(move, reloc[i])
 							end
@@ -218,6 +219,8 @@ local function moves_from_cell(s, cell)
 								coroutine.yield(move)
 							end
 						end
+						
+						::skip::
 
 						break
 
@@ -355,7 +358,7 @@ local function save_graph(graph)
 	fp:close()
 end
 
---save_graph(compute_graph())
+save_graph(compute_graph())
 
 --[[ Backwards analysis ]]
 
