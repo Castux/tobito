@@ -77,17 +77,17 @@ local function state_winner(s)
 	-- Invasion
 	
 	if s[0] == Bottom and s[1] == Bottom and s[2] == Bottom then
-		return Bottom
+		return Bottom, "invasion"
 	elseif s[12] == Top and s[13] == Top and s[14] == Top then
-		return Top
+		return Top, "invasion"
 	end
 	
 	-- Passivity
 	
 	if s.next_player == Top and s[12] ~= Empty and s[13] ~= Empty and s[14] ~= Empty then
-		return Top
+		return Top, "passivity"
 	elseif s.next_player == Bottom and s[0] ~= Empty and s[1] ~= Empty and s[2] ~= Empty then
-		return Bottom
+		return Bottom, "passivity"
 	end
 	
 	return nil
@@ -355,7 +355,7 @@ local function save_graph(graph)
 	fp:close()
 end
 
-save_graph(compute_graph())
+--save_graph(compute_graph())
 
 --[[ Backwards analysis ]]
 
@@ -503,10 +503,9 @@ local function distances_from_state(s_int)
 	return distances
 end
 
-local function heatmap()
+local function heatmap(winner)
 	
-	local top_wins = {}
-	local bottom_wins = {}
+	local win_states = {}
 	
 	-- Find win states
 	
@@ -516,24 +515,63 @@ local function heatmap()
 	for int,entry in pairs(Graph) do
 
 		int_to_state(int, tmp_state)
-		local w = state_winner(tmp_state)
+		local w,kind = state_winner(tmp_state)
 
-		if w == Top then
-			table.insert(top_wins, int)
-		elseif w == Bottom then
-			table.insert(bottom_wins, int)
+		if w == winner and kind == "invasion" then
+			table.insert(win_states, int)
 		end
 	end
-end
---[[
-local R = analysis()
-local counts = {[Loss] = 0, [Win] = 0, [Count] = 0}
-for k,v in pairs(R) do
-	local kind, amount = decode(v)
-	counts[kind] = counts[kind] + 1
+	
+	print("win states", #win_states)
+	
+	-- Compute all distances to win states
+	-- Combine using magical formula
+	
+	local heat = {}
+	
+	for i,win_state in ipairs(win_states) do
+		
+		print(i / #win_states * 100 .. "%")
+		local d = distances_from_state(win_state)
+		
+		for int,_ in pairs(Graph) do
+			heat[int] = (heat[int] or 0) + (d[int] or math.huge)
+		end
+	end
+	
+	return heat
 end
 
-for k,v in pairs(counts) do
-	print(k,v / 200200)
+local function compute_all_win_state_distances()
+	
+	local Graph = require "graph"
+	local tmp_state = {}
+	
+	local count = 0
+	
+	for int,entry in pairs(Graph) do
+
+		int_to_state(int, tmp_state)
+		local w,kind = state_winner(tmp_state)
+
+		if kind == "invasion" then
+			
+			count = count + 1
+			print(count)
+		
+			local fp = io.open("dist/" .. int .. ".lua", "w")
+			fp:write "return {\n"
+			
+			for state,distance in pairs(distances_from_state(int)) do
+				fp:write(string.format("[%d] = %d,\n", state, distance))
+			end
+			
+			fp:write "}"
+			fp:close()
+			
+		end
+	end
+	
 end
---]]
+
+compute_all_win_state_distances()
