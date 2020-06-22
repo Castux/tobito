@@ -69,27 +69,27 @@ local function int_to_state(i, s)
 end
 
 local function state_winner(s)
-	
+
 	if s.start then
 		return nil
 	end
-	
+
 	-- Invasion
-	
+
 	if s[0] == Bottom and s[1] == Bottom and s[2] == Bottom then
 		return Bottom, "invasion"
 	elseif s[12] == Top and s[13] == Top and s[14] == Top then
 		return Top, "invasion"
 	end
-	
+
 	-- Passivity
-	
+
 	if s.next_player == Top and s[12] ~= Empty and s[13] ~= Empty and s[14] ~= Empty then
 		return Top, "passivity"
 	elseif s.next_player == Bottom and s[0] ~= Empty and s[1] ~= Empty and s[2] ~= Empty then
 		return Bottom, "passivity"
 	end
-	
+
 	return nil
 end
 
@@ -162,13 +162,13 @@ local function relocations(s, num, avoid)
 end
 
 local function movable_pawn(s, cell)
-	
+
 	if s[cell] == Top then
 		return cell < 12
 	elseif s[cell] == Bottom then
 		return cell > 2
 	end
-	
+
 	error "Not a pawn"
 end
 
@@ -199,7 +199,7 @@ local function moves_from_cell(s, cell)
 
 				for i,dest in ipairs(dir) do
 					if s[dest] == Empty then
-						
+
 						for _,j in ipairs(jumped) do
 							if not movable_pawn(s, j) then
 								goto skip
@@ -213,10 +213,10 @@ local function moves_from_cell(s, cell)
 								table.insert(move, jumped[i])
 								table.insert(move, reloc[i])
 							end
-							
+
 							coroutine.yield(move)
 						end
-						
+
 						::skip::
 
 						break
@@ -231,12 +231,12 @@ end
 
 local function valid_moves(s)
 	return coroutine.wrap(function()
-			
+
 			local w = state_winner(s)
 			if w then
 				return
 			end
-			
+
 			for cell in active_pawns(s) do
 				for move in moves_from_cell(s, cell) do
 					coroutine.yield(move)
@@ -306,7 +306,7 @@ local function all_states()
 			end
 		end
 	end
-	
+
 	table.insert(states, state_to_int(start_state()))
 
 	return states
@@ -472,18 +472,18 @@ end
 local function distances_from_state(s_int)
 
 	local Graph = require "graph"
-	
+
 	local distances = {}
 	local to_treat = {}
 	local treated = {}
-	
+
 	distances[s_int] = 0
 	to_treat[s_int] = true
-	
+
 	while true do
-		
+
 		local did_one = false
-		
+
 		for k in pairs(to_treat) do
 			for _,parent in ipairs(Graph[k].parents) do
 				if not treated[parent] then					
@@ -491,87 +491,142 @@ local function distances_from_state(s_int)
 					to_treat[parent] = true
 				end
 			end
-		
+
 			to_treat[k] = nil
 			treated[k] = true
 			did_one = true
 		end
-		
+
 		if not did_one then break end
 	end
-	
+
 	return distances
 end
 
-local function heatmap(winner)
-	
-	local win_states = {}
-	
-	-- Find win states
-	
-	local tmp_state = {}
-	local Graph = require "graph"
-	
-	for int,entry in pairs(Graph) do
-
-		int_to_state(int, tmp_state)
-		local w,kind = state_winner(tmp_state)
-
-		if w == winner and kind == "invasion" then
-			table.insert(win_states, int)
-		end
-	end
-	
-	print("win states", #win_states)
-	
-	-- Compute all distances to win states
-	-- Combine using magical formula
-	
-	local heat = {}
-	
-	for i,win_state in ipairs(win_states) do
-		
-		print(i / #win_states * 100 .. "%")
-		local d = distances_from_state(win_state)
-		
-		for int,_ in pairs(Graph) do
-			heat[int] = (heat[int] or 0) + (d[int] or math.huge)
-		end
-	end
-	
-	return heat
-end
-
 local function compute_all_win_state_distances()
-	
+
 	local Graph = require "graph"
 	local tmp_state = {}
-	
+
 	local count = 0
-	
+
 	for int,entry in pairs(Graph) do
 
 		int_to_state(int, tmp_state)
 		local w,kind = state_winner(tmp_state)
 
 		if kind == "invasion" then
-			
+
 			count = count + 1
 			print(count)
-		
+
 			local fp = io.open("dist/" .. int .. ".lua", "w")
 			fp:write "return {\n"
-			
+
 			for state,distance in pairs(distances_from_state(int)) do
 				fp:write(string.format("[%d] = %d,\n", state, distance))
 			end
-			
+
 			fp:write "}"
 			fp:close()
-			
+
 		end
+	end
+
+end
+
+--compute_all_win_state_distances()
+
+local function compute_heatmap()
+
+	local Graph = require "graph"
+	local tmp_state = {}
+
+	local heat = {}
+	
+	local count = 0
+
+	for int,entry in pairs(Graph) do
+		
+		count = count + 1
+		print(count)
+
+		int_to_state(int, tmp_state)
+		local w,kind = state_winner(tmp_state)
+
+		if kind == "invasion" then
+			
+			local distances = dofile("dist/" .. int .. ".lua")
+			
+			for s,d in pairs(distances) do
+				
+				if d == 0 then
+					heat[s] = (w == Top and 1e6 or -1e6)
+				else
+					heat[s] = (heat[s] or 0) + 1 / (w == Top and d or -d)
+				end
+			end
+		end
+	end
+	
+	return heat
+end
+
+local function save_heatmap(heat)
+	
+	local fp = io.open("heatmap.lua", "w")
+	fp:write "return {\n"
+	
+	for k,v in pairs(heat) do
+		fp:write(string.format("[%d] = %f,\n", k, v))
+	end
+	
+	fp:write "}"
+	fp:close()
+end
+
+--save_heatmap(compute_heatmap())
+
+local function show_heatmap()
+	
+	local heat = dofile "heatmap.lua"
+	
+	local list = {}
+	for k,v in pairs(heat) do
+		table.insert(list, k)
+	end
+	
+	table.sort(list, function(a,b)
+		return heat[a] < heat[b]
+	end)
+
+	local tmp_state = {}
+
+	for _,v in pairs(list) do
+		
+		print "====="
+		int_to_state(v, tmp_state)
+		draw_state(tmp_state)
+		print(heat[v])
+	end
+end
+
+--show_heatmap()
+
+local function decide_state(s)
+	
+	local heat = require "heatmap"
+	local graph = require "graph"
+	
+	local int = state_to_int(s)
+	draw_state(s)
+	
+	for _,child in ipairs(graph[int].children) do
+		print "==="
+		draw_state(int_to_state(child))
+		print(heat[child])
 	end
 	
 end
 
-compute_all_win_state_distances()
+decide_state(start_state())
