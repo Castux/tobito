@@ -563,7 +563,7 @@ local function compute_heatmap()
 				if d == 0 then
 					heat[s] = (w == Top and 1e6 or -1e6)
 				else
-					heat[s] = (heat[s] or 0) + 1 / (w == Top and d or -d)
+					heat[s] = (heat[s] or 0) + (w == Top and 1 or -1) * 1 / (d*d)
 				end
 			end
 		end
