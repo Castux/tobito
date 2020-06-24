@@ -1,4 +1,5 @@
 local js = require "js"
+local tobito = require "tobito"
 
 local context
 
@@ -22,10 +23,40 @@ local function get_pawn_at_cell(cell)
     end
 end
 
+local function get_pawn_player(div)
+
+    if div.classList:contains "top" then
+        return tobito.Top
+    else
+        return tobito.Bottom
+    end
+
+end
+
 local function set_pawn_cell(div, cell)
 
     local num = get_div_cell(div)
     div.classList:replace("cell" .. num, "cell" .. cell)
+end
+
+local function state_to_int()
+
+    local s = {}
+    for i = 0, tobito.MaxCell do
+        s[i] = tobito.Empty
+    end
+
+    for _,div in ipairs(context.pawns) do
+        local player = div.classList:contains "top" and tobito.Top or tobito.Bottom
+        local cell = get_div_cell(div)
+
+        s[cell] = player
+    end
+
+    s.next_player = context.next_player
+    s.start = true
+
+    return tobito.state_to_int(s)
 end
 
 local function deselect()
@@ -44,6 +75,11 @@ end
 local function on_pawn_clicked(self, e)
 
     local cell = get_div_cell(self)
+    local player = get_pawn_player(self)
+
+    if player ~= context.next_player then
+        return
+    end
 
     if context.selected == self then
         deselect()
@@ -76,6 +112,18 @@ local function on_trigger_clicked(self, e)
 
 end
 
+local function on_start_button_clicked(self, e)
+
+    if self.id == "aiStarts" then
+        context.next_player = tobito.Top
+    else
+        context.next_player = tobito.Bottom
+    end
+
+    local overlay = js.global.document:getElementById "startSelector"
+    overlay.parentElement:removeChild(overlay)
+end
+
 local function setup()
 
     local pawn_collection = js.global.document:getElementsByClassName "pawn"
@@ -96,12 +144,17 @@ local function setup()
         table.insert(triggers, t)
     end
 
+    local starter_buttons = js.global.document:getElementsByClassName "starterButton"
+    for i = 0, starter_buttons.length - 1 do
+        local b = starter_buttons[i]
+        b:addEventListener("click", on_start_button_clicked)
+    end
+
     context =
     {
         pawns = pawns,
         triggers = triggers
     }
 end
-
 
 setup()

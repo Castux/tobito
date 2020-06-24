@@ -132,7 +132,7 @@ local function precompute_moves()
 	return moves
 end
 
-local Moves = precompute_moves()
+--local Moves = precompute_moves()
 
 local function relocations(s, num, avoid)
 
@@ -261,7 +261,7 @@ local function pick_n(arr, n)
 
 	local picked, left = {},arr
 
-	local function rec(start, n)		
+	local function rec(start, n)
 		if n == 0 then
 			coroutine.yield(picked)
 			return
@@ -486,7 +486,7 @@ local function distances_from_state(s_int)
 
 		for k in pairs(to_treat) do
 			for _,parent in ipairs(Graph[k].parents) do
-				if not treated[parent] then					
+				if not treated[parent] then
 					distances[parent] = math.min(distances[parent] or math.maxinteger, 1 + distances[k])
 					to_treat[parent] = true
 				end
@@ -543,11 +543,11 @@ local function compute_heatmap()
 	local tmp_state = {}
 
 	local heat = {}
-	
+
 	local count = 0
 
 	for int,entry in pairs(Graph) do
-		
+
 		count = count + 1
 		print(count)
 
@@ -555,11 +555,11 @@ local function compute_heatmap()
 		local w,kind = state_winner(tmp_state)
 
 		if kind == "invasion" then
-			
+
 			local distances = dofile("dist/" .. int .. ".lua")
-			
+
 			for s,d in pairs(distances) do
-				
+
 				if d == 0 then
 					heat[s] = (w == Top and 1e6 or -1e6)
 				else
@@ -568,19 +568,19 @@ local function compute_heatmap()
 			end
 		end
 	end
-	
+
 	return heat
 end
 
 local function save_heatmap(heat)
-	
+
 	local fp = io.open("heatmap.lua", "w")
 	fp:write "return {\n"
-	
+
 	for k,v in pairs(heat) do
 		fp:write(string.format("[%d] = %f,\n", k, v))
 	end
-	
+
 	fp:write "}"
 	fp:close()
 end
@@ -588,14 +588,14 @@ end
 --save_heatmap(compute_heatmap())
 
 local function show_heatmap()
-	
+
 	local heat = dofile "heatmap.lua"
-	
+
 	local list = {}
 	for k,v in pairs(heat) do
 		table.insert(list, k)
 	end
-	
+
 	table.sort(list, function(a,b)
 		return heat[a] < heat[b]
 	end)
@@ -603,7 +603,7 @@ local function show_heatmap()
 	local tmp_state = {}
 
 	for _,v in pairs(list) do
-		
+
 		print "====="
 		int_to_state(v, tmp_state)
 		draw_state(tmp_state)
@@ -614,19 +614,29 @@ end
 --show_heatmap()
 
 local function decide_state(s)
-	
+
 	local heat = require "heatmap"
 	local graph = require "graph"
-	
+
 	local int = state_to_int(s)
 	draw_state(s)
-	
+
 	for _,child in ipairs(graph[int].children) do
 		print "==="
 		draw_state(int_to_state(child))
 		print(heat[child])
 	end
-	
+
 end
 
-decide_state(start_state())
+--decide_state(start_state())
+
+return
+{
+	Top = Top,
+	Bottom = Bottom,
+	Empty = Empty,
+	MaxCell = MaxCell,
+
+	state_to_int = state_to_int
+}
