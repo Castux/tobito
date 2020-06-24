@@ -12,6 +12,16 @@ local function get_div_cell(div)
     end
 end
 
+local function get_pawn_at_cell(cell)
+
+    for _,div in ipairs(context.pawns) do
+        local c = get_div_cell(div)
+        if c == cell then
+            return div
+        end
+    end
+end
+
 local function set_pawn_cell(div, cell)
 
     local num = get_div_cell(div)
@@ -48,6 +58,12 @@ local function on_trigger_clicked(self, e)
     local cell = get_div_cell(self)
 
     if context.selected then
+
+        local previous = get_pawn_at_cell(cell)
+        if previous then
+            return
+        end
+
         local pawn = context.selected
         deselect()
 
@@ -63,12 +79,12 @@ end
 local function setup()
 
     local pawn_collection = js.global.document:getElementsByClassName "pawn"
-    local pawn = {}
+    local pawns = {}
 
     for i = 0, pawn_collection.length - 1 do
         local p = pawn_collection[i]
         p:addEventListener("click", on_pawn_clicked)
-        table.insert(pawn, p)
+        table.insert(pawns, p)
     end
 
     local trigger_collection = js.global.document:getElementsByClassName "trigger"
