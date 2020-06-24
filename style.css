@@ -1,0 +1,123 @@
+.board
+{
+    position: relative;
+
+    width: 680px;
+    height: 680px;
+    background: url(Tobito.jpg);
+
+    margin: 0 auto;
+}
+
+.pawn
+{
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    background: blue;
+    border-radius: 50%;
+    border: 5px solid;
+    transform: scale(0.7);
+}
+
+.bottom
+{
+    background: #0A0B4C;
+    border-color: white;
+}
+
+.top
+{
+    background: white;
+    border-color: #0A0B4C;
+}
+
+.cell0
+{
+    top: 37px;
+    left: 158px;
+}
+
+.cell1
+{
+    top: 37px;
+    left: 279px;
+}
+
+.cell2
+{
+    top: 37px;
+    left: 401px;
+}
+
+.cell3
+{
+    top: 158px;
+    left: 158px;
+}
+
+.cell4
+{
+    top: 158px;
+    left: 279px;
+}
+
+.cell5
+{
+    top: 158px;
+    left: 401px;
+}
+
+.cell6
+{
+    top: 279px;
+    left: 158px;
+}
+
+.cell7
+{
+    top: 279px;
+    left: 279px;
+}
+
+.cell8
+{
+    top: 279px;
+    left: 401px;
+}
+
+.cell9
+{
+    top: 401px;
+    left: 158px;
+}
+
+.cell10
+{
+    top: 401px;
+    left: 279px;
+}
+
+.cell11
+{
+    top: 401px;
+    left: 401px;
+}
+
+.cell12
+{
+    top: 522px;
+    left: 158px;
+}
+
+.cell13
+{
+    top: 522px;
+    left: 279px;
+}
+
+.cell14
+{
+    top: 522px;
+    left: 401px;
+}
