@@ -48,8 +48,14 @@ local function on_trigger_clicked(self, e)
     local cell = get_div_cell(self)
 
     if context.selected then
-        set_pawn_cell(context.selected, cell)
+        local pawn = context.selected
         deselect()
+
+        pawn.parentElement:appendChild(pawn)
+
+        js.global:setTimeout(function()
+            set_pawn_cell(pawn, cell)
+        end, 0.01)
     end
 
 end
