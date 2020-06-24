@@ -37,14 +37,14 @@
 
 .bottom
 {
-    background: #0A0B4C;
-    border-color: white;
+    background: #34AACE;
+    border-color: black;
 }
 
 .top
 {
-    background: white;
-    border-color: #0A0B4C;
+    background: #D80100;
+    border-color: black;
 }
 
 .cell0
