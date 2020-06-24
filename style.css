@@ -14,10 +14,25 @@
     position: absolute;
     width: 110px;
     height: 110px;
-    background: blue;
     border-radius: 50%;
     border: 5px solid;
     transform: scale(0.7);
+
+    transition: top 0.75s, left 0.75s;
+}
+
+@keyframes wobble
+{
+  from { transform: scale(0.7); }
+  to { transform: scale(0.75); }
+}
+
+.selected
+{
+    animation-name: wobble;
+    animation-duration: 0.3s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
 }
 
 .bottom
@@ -120,4 +135,12 @@
 {
     top: 522px;
     left: 401px;
+}
+
+.trigger
+{
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    background: rgba(0,0,0,0);
 }
