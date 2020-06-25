@@ -40,7 +40,16 @@ local function draw_state(s)
 	print("Next:", s.next_player == Top and "Top" or "Bottom", s.start and "start" or "")
 end
 
-local function state_to_int(s)
+local function sort3(a,b,c)
+	
+	if a > b then a,b = b,a end
+	if b > c then b,c = c,b end
+	if a > b then a,b = b,a end
+	
+	return a,b,c
+end
+
+local function state_to_int_old(s)
 
 	local i = 0
 
@@ -54,7 +63,7 @@ local function state_to_int(s)
 	return i
 end
 
-local function int_to_state(i, s)
+local function int_to_state_old(i, s)
 
 	s = s or {}
 
@@ -65,6 +74,48 @@ local function int_to_state(i, s)
 	s.next_player = (i >> 30) & 0x3
 	s.start = (i >> 32) == 1
 
+	return s
+end
+
+local function state_to_int(s)
+	
+	local i = 0
+	local top_index = 0
+	local bottom_index = 3
+	
+	for cell = 0,MaxCell do
+		if s[cell] == Top then
+			i = i | (cell << (top_index * 4))
+			top_index = top_index + 1
+			
+		elseif s[cell] == Bottom then
+			i = i | (cell << (bottom_index * 4))
+			bottom_index = bottom_index + 1
+		end
+	end
+	
+	i = i | (s.next_player << 24)
+	i = i | ((s.start and 1 or 0) << 26)
+	
+	return i
+end
+
+local function int_to_state(int, s)
+	
+	s = s or {}
+	
+	for cell = 0,MaxCell do
+		s[cell] = Empty
+	end
+	
+	for i = 0,5 do
+		local cell = (int >> (i * 4)) & 0xf
+		s[cell] = (i < 3) and Top or Bottom		
+	end
+	
+	s.next_player = (int >> 24) & 0x3
+	s.start = (int >> 26) == 1
+	
 	return s
 end
 
@@ -132,7 +183,7 @@ local function precompute_moves()
 	return moves
 end
 
---local Moves = precompute_moves()
+local Moves = precompute_moves()
 
 local function relocations(s, num, avoid)
 
@@ -292,22 +343,25 @@ local function all_states()
 		for bottom in pick_n(cells, 3) do		-- trick: cells is modified by pick_n and contains only the ones left
 			for player = Top,Bottom do
 
-				local i = 0
-				for _,t in ipairs(top) do
-					i = i | (Top << (t * 2))
+				local int = 0
+				for i,t in ipairs(top) do
+					int = int | (t << ((i - 1) * 4))
 				end
-				for _,b in ipairs(bottom) do
-					i = i | (Bottom << (b * 2))
+				for i,b in ipairs(bottom) do
+					int = int | (b << ((i + 2) * 4))
 				end
 
-				i = i | (player << 30)
+				int = int | (player << 24)
 
-				table.insert(states, i)
+				table.insert(states, int)
 			end
 		end
 	end
 
-	table.insert(states, state_to_int(start_state()))
+	local ss = start_state()
+	table.insert(states, state_to_int(ss))
+	ss.next_player = Bottom
+	table.insert(states, state_to_int(ss))
 
 	return states
 end
@@ -355,7 +409,7 @@ local function save_graph(graph)
 	fp:close()
 end
 
---save_graph(compute_graph())
+save_graph(compute_graph())
 
 --[[ Backwards analysis ]]
 
@@ -585,7 +639,7 @@ local function save_heatmap(heat)
 	fp:close()
 end
 
---save_heatmap(compute_heatmap())
+save_heatmap(compute_heatmap())
 
 local function show_heatmap()
 
