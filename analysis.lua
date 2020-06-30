@@ -1,93 +1,54 @@
 local tobito = require "tobito"
 
-local function pick_n(arr, n)
-
-	local picked, left = {},arr
-
-	local function rec(start, n)
-		if n == 0 then
-			coroutine.yield(picked)
-			return
-		end
-
-		for i = start,#left do
-
-			table.insert(picked, table.remove(left, i))
-			rec(i, n-1)
-			table.insert(left, i, table.remove(picked))
-
-		end
-	end
-
-	return coroutine.wrap(function() rec(1, n) end)
-end
-
-local function all_states()
+local function compute_graph2()
 
 	local states = {}
-
-	local cells = {}
-	for i = 0, tobito.MaxCell do
-		table.insert(cells, i)
-	end
-
-	for top in pick_n(cells, 3) do
-		for bottom in pick_n(cells, 3) do		-- trick: cells is modified by pick_n and contains only the ones left
-			for player = tobito.Top, tobito.Bottom do
-
-				local int = 0
-				for i,t in ipairs(top) do
-					int = int | (t << ((i - 1) * 4))
-				end
-				for i,b in ipairs(bottom) do
-					int = int | (b << ((i + 2) * 4))
-				end
-
-				int = int | (player << 24)
-
-				table.insert(states, int)
-			end
-		end
-	end
+	local queue = {}
+	local next_queue = {}
 
 	local ss = tobito.start_state()
-	table.insert(states, tobito.state_to_int(ss))
+	ss.next_player = tobito.Top
+	table.insert(queue, tobito.state_to_int(ss))
 	ss.next_player = tobito.Bottom
-	table.insert(states, tobito.state_to_int(ss))
+	table.insert(queue, tobito.state_to_int(ss))
 
-	return states
-end
+	while #queue > 0 do
+		print (#queue)
+		for _,int in ipairs(queue) do
+			
+			local state = tobito.int_to_state(int)
+			local children = {}
 
-local function compute_graph()
+			for m in tobito.valid_moves(state) do
+				tobito.apply_move(m, state)
+				child = tobito.state_to_int(state)
+				
+				table.insert(children, child)
 
-	local graph = {}
-	local s = {}
-
-	for i,int in ipairs(all_states()) do
-		local children = {}
-
-		tobito.int_to_state(int, s)
-
-		for m in tobito.valid_moves(s) do
-			tobito.apply_move(s, m)
-			table.insert(children, tobito.state_to_int(s))
-			tobito.int_to_state(int, s)
+				if not states[child] then
+					next_queue[child] = true
+				end
+				
+				tobito.int_to_state(int, state)
+			end
+			
+			states[int] = { children = children, parents = {} }
 		end
 
-		graph[int] = {children = children, parents = {}}
-
-		if i % 10000 == 0 then
-			print(i)
+		queue = {}
+		for child in pairs(next_queue) do
+			table.insert(queue, child)
 		end
+		next_queue = {}
 	end
-
-	for int,entry in pairs(graph) do
+	
+	for int,entry in pairs(states) do
 		for _,child in ipairs(entry.children) do
-			table.insert(graph[child].parents, int)
+			table.insert(states[child].parents, int)
 		end
 	end
-
-	return graph
+	
+	return states
 end
 
 local function save_graph(graph)
