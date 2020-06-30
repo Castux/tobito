@@ -35,7 +35,7 @@ local function state_to_int(s)
 		if s[cell] == Top then
 			i = i | (cell << (top_index * 4))
 			top_index = top_index + 1
-
+			
 		elseif s[cell] == Bottom then
 			i = i | (cell << (bottom_index * 4))
 			bottom_index = bottom_index + 1
@@ -242,35 +242,10 @@ local function moves_from_cell(s, cell)
 		end)
 end
 
-local function home_row_full(s)
+local function home_row_full(s, player)
 
-	return (s.next_player == Top and s[0] ~= Empty and s[1] ~= Empty and s[2] ~= Empty) or
-		(s.next_player == Bottom and s[12] ~= Empty and s[13] ~= Empty and s[14] ~= Empty)
-end
-
-local function is_home_row(s, cell)
-	return (s.next_player == Top and cell <= 2) or
-		(s.next_player == Bottom and cell >= 12)
-end
-
-local function valid_moves(s)
-	return coroutine.wrap(function()
-
-			local w = state_winner(s)
-			if w then
-				return
-			end
-
-			local hrf = home_row_full(s)
-
-			for cell in active_pawns(s) do
-				if (not hrf) or (hrf and is_home_row(s, cell)) then
-					for move in moves_from_cell(s, cell) do
-						coroutine.yield(move)
-					end
-				end
-			end
-		end)
+	return (player == Top and s[0] ~= Empty and s[1] ~= Empty and s[2] ~= Empty) or
+	(player == Bottom and s[12] ~= Empty and s[13] ~= Empty and s[14] ~= Empty)
 end
 
 local function apply_move(s, m)
@@ -284,6 +259,32 @@ local function apply_move(s, m)
 	s.start = false
 end
 
+local function valid_moves(s)
+	return coroutine.wrap(function()
+
+			local int = state_to_int(s)
+			local player = s.next_player
+
+			local w = state_winner(s)
+			if w then
+				return
+			end
+
+			for cell in active_pawns(s) do
+				for move in moves_from_cell(s, cell) do
+
+					-- Try applying move to check for passivity
+
+					apply_move(s, move)
+					if not home_row_full(s, player) then
+						coroutine.yield(move)
+					end
+
+					int_to_state(int, s)
+				end
+			end
+		end)
+end
 
 local function pick_n(arr, n)
 
