@@ -286,64 +286,6 @@ local function valid_moves(s)
 		end)
 end
 
-local function pick_n(arr, n)
-
-	local picked, left = {},arr
-
-	local function rec(start, n)
-		if n == 0 then
-			coroutine.yield(picked)
-			return
-		end
-
-		for i = start,#left do
-
-			table.insert(picked, table.remove(left, i))
-			rec(i, n-1)
-			table.insert(left, i, table.remove(picked))
-
-		end
-	end
-
-	return coroutine.wrap(function() rec(1, n) end)
-end
-
-local function all_states()
-
-	local states = {}
-
-	local cells = {}
-	for i = 0,MaxCell do
-		table.insert(cells, i)
-	end
-
-	for top in pick_n(cells, 3) do
-		for bottom in pick_n(cells, 3) do		-- trick: cells is modified by pick_n and contains only the ones left
-			for player = Top,Bottom do
-
-				local int = 0
-				for i,t in ipairs(top) do
-					int = int | (t << ((i - 1) * 4))
-				end
-				for i,b in ipairs(bottom) do
-					int = int | (b << ((i + 2) * 4))
-				end
-
-				int = int | (player << 24)
-
-				table.insert(states, int)
-			end
-		end
-	end
-
-	local ss = start_state()
-	table.insert(states, state_to_int(ss))
-	ss.next_player = Bottom
-	table.insert(states, state_to_int(ss))
-
-	return states
-end
-
 return
 {
 	Top = Top,

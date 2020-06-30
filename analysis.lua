@@ -1,6 +1,6 @@
 local tobito = require "tobito"
 
-local function compute_graph2()
+local function compute_graph()
 
 	local states = {}
 	local queue = {}
@@ -15,23 +15,23 @@ local function compute_graph2()
 	while #queue > 0 do
 		print (#queue)
 		for _,int in ipairs(queue) do
-			
+
 			local state = tobito.int_to_state(int)
 			local children = {}
 
 			for m in tobito.valid_moves(state) do
 				tobito.apply_move(m, state)
 				child = tobito.state_to_int(state)
-				
+
 				table.insert(children, child)
 
 				if not states[child] then
 					next_queue[child] = true
 				end
-				
+
 				tobito.int_to_state(int, state)
 			end
-			
+
 			states[int] = { children = children, parents = {} }
 		end
 
@@ -41,13 +41,13 @@ local function compute_graph2()
 		end
 		next_queue = {}
 	end
-	
+
 	for int,entry in pairs(states) do
 		for _,child in ipairs(entry.children) do
 			table.insert(states[child].parents, int)
 		end
 	end
-	
+
 	return states
 end
 
@@ -68,29 +68,33 @@ local function distances_from_state(s_int)
 
 	local distances = {}
 	local to_treat = {}
+	local next_queue = {}
 	local treated = {}
 
 	distances[s_int] = 0
-	to_treat[s_int] = true
+	table.insert(to_treat, s_int)
 
-	while true do
+	while #to_treat > 0 do
 
 		local did_one = false
 
-		for k in pairs(to_treat) do
-			for _,parent in ipairs(Graph[k].parents) do
+		for _,int in ipairs(to_treat) do
+			for _,parent in ipairs(Graph[int].parents) do
 				if not treated[parent] then
-					distances[parent] = math.min(distances[parent] or math.maxinteger, 1 + distances[k])
-					to_treat[parent] = true
+					distances[parent] = math.min(distances[parent] or math.maxinteger, 1 + distances[int])
+					next_queue[parent] = true
 				end
 			end
 
-			to_treat[k] = nil
-			treated[k] = true
-			did_one = true
+			treated[int] = true
 		end
 
-		if not did_one then break end
+		to_treat = {}
+		for k in pairs(next_queue) do
+			table.insert(to_treat, k)
+		end
+		next_queue = {}
+
 	end
 
 	return distances
@@ -106,21 +110,22 @@ local function compute_all_win_state_distances()
 	for int,entry in pairs(Graph) do
 
 		tobito.int_to_state(int, tmp_state)
-		local w,kind = tobito.state_winner(tmp_state)
+		local w = tobito.state_winner(tmp_state)
 
-		count = count + 1
-		print(count)
+		if w then
+			count = count + 1
+			print(count)
 
-		local fp = io.open("dist/" .. int .. ".lua", "w")
-		fp:write "return {\n"
+			local fp = io.open("dist/" .. int .. ".lua", "w")
+			fp:write "return {\n"
 
-		for state,distance in pairs(distances_from_state(int)) do
-			fp:write(string.format("[%d] = %d,\n", state, distance))
+			for state,distance in pairs(distances_from_state(int)) do
+				fp:write(string.format("[%d] = %d,\n", state, distance))
+			end
+
+			fp:write "}"
+			fp:close()
 		end
-
-		fp:write "}"
-		fp:close()
-
 	end
 
 end
@@ -140,9 +145,9 @@ local function compute_heatmap()
 		print(count)
 
 		tobito.int_to_state(int, tmp_state)
-		local w,kind = tobito.state_winner(tmp_state)
+		local w = tobito.state_winner(tmp_state)
 
-		if kind == "invasion" then
+		if w then
 
 			local distances = dofile("dist/" .. int .. ".lua")
 
@@ -213,8 +218,8 @@ local function decide_state(s)
 
 end
 
-save_graph(compute_graph())
---compute_all_win_state_distances()
+--save_graph(compute_graph())
+compute_all_win_state_distances()
 --save_heatmap(compute_heatmap())
 --show_heatmap()
 --decide_state(start_state())
