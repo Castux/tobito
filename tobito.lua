@@ -40,43 +40,6 @@ local function draw_state(s)
 	print("Next:", s.next_player == Top and "Top" or "Bottom", s.start and "start" or "")
 end
 
-local function sort3(a,b,c)
-
-	if a > b then a,b = b,a end
-	if b > c then b,c = c,b end
-	if a > b then a,b = b,a end
-
-	return a,b,c
-end
-
-local function state_to_int_old(s)
-
-	local i = 0
-
-	for cell = 0,MaxCell do
-		i = i | (s[cell] << (cell * 2))
-	end
-
-	i = i | (s.next_player << 30)
-	i = i | ((s.start and 1 or 0) << 32)
-
-	return i
-end
-
-local function int_to_state_old(i, s)
-
-	s = s or {}
-
-	for cell = 0,MaxCell do
-		s[cell] = (i >> (cell * 2)) & 0x3
-	end
-
-	s.next_player = (i >> 30) & 0x3
-	s.start = (i >> 32) == 1
-
-	return s
-end
-
 local function state_to_int(s)
 
 	local i = 0
@@ -128,17 +91,9 @@ local function state_winner(s)
 	-- Invasion
 
 	if s[0] == Bottom and s[1] == Bottom and s[2] == Bottom then
-		return Bottom, "invasion"
+		return Bottom
 	elseif s[12] == Top and s[13] == Top and s[14] == Top then
-		return Top, "invasion"
-	end
-
-	-- Passivity
-
-	if s.next_player == Top and s[12] ~= Empty and s[13] ~= Empty and s[14] ~= Empty then
-		return Top, "passivity"
-	elseif s.next_player == Bottom and s[0] ~= Empty and s[1] ~= Empty and s[2] ~= Empty then
-		return Bottom, "passivity"
+		return Top
 	end
 
 	return nil
@@ -280,6 +235,17 @@ local function moves_from_cell(s, cell)
 		end)
 end
 
+local function home_row_full(s)
+	
+	return (s.next_player == Top and s[0] ~= Empty and s[1] ~= Empty and s[2] ~= Empty) or
+		(s.next_player == Bottom and s[12] ~= Empty and s[13] ~= Empty and s[14] ~= Empty)
+end
+
+local function is_home_row(s, cell)
+	return (s.next_player == Top and cell <= 2) or
+		(s.next_player == Bottom and cell >= 12)
+end
+
 local function valid_moves(s)
 	return coroutine.wrap(function()
 
@@ -287,10 +253,14 @@ local function valid_moves(s)
 			if w then
 				return
 			end
+			
+			local hrf = home_row_full(s)
 
 			for cell in active_pawns(s) do
-				for move in moves_from_cell(s, cell) do
-					coroutine.yield(move)
+				if (not hrf) or (hrf and is_home_row(s, cell)) then
+					for move in moves_from_cell(s, cell) do
+						coroutine.yield(move)
+					end
 				end
 			end
 		end)

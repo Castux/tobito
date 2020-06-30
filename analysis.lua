@@ -147,22 +147,19 @@ local function compute_all_win_state_distances()
 		tobito.int_to_state(int, tmp_state)
 		local w,kind = tobito.state_winner(tmp_state)
 
-		if kind == "invasion" then
+		count = count + 1
+		print(count)
 
-			count = count + 1
-			print(count)
+		local fp = io.open("dist/" .. int .. ".lua", "w")
+		fp:write "return {\n"
 
-			local fp = io.open("dist/" .. int .. ".lua", "w")
-			fp:write "return {\n"
-
-			for state,distance in pairs(distances_from_state(int)) do
-				fp:write(string.format("[%d] = %d,\n", state, distance))
-			end
-
-			fp:write "}"
-			fp:close()
-
+		for state,distance in pairs(distances_from_state(int)) do
+			fp:write(string.format("[%d] = %d,\n", state, distance))
 		end
+
+		fp:write "}"
+		fp:close()
+
 	end
 
 end
@@ -225,8 +222,8 @@ local function show_heatmap()
 	end
 
 	table.sort(list, function(a,b)
-		return heat[a] < heat[b]
-	end)
+			return heat[a] < heat[b]
+		end)
 
 	local tmp_state = {}
 
@@ -256,7 +253,7 @@ local function decide_state(s)
 end
 
 save_graph(compute_graph())
-compute_all_win_state_distances()
-save_heatmap(compute_heatmap())
-show_heatmap()
-decide_state(start_state())
+--compute_all_win_state_distances()
+--save_heatmap(compute_heatmap())
+--show_heatmap()
+--decide_state(start_state())
