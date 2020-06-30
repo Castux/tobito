@@ -230,7 +230,12 @@ body
     background: white;
 }
 
-.aiSelected
+#topSelector > .aiSelected
 {
-    background: grey !important;
+    background: #D80100AA !important;
+}
+
+#bottomSelector > .aiSelected
+{
+    background: #34AACEAA !important;
 }
