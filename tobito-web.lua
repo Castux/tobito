@@ -223,7 +223,7 @@ end
 
 local function on_start_button_clicked(self, e)
 
-    if self.id == "aiStarts" then
+    if self.id == "redStarts" then
         context.next_player = tobito.Top
     else
         context.next_player = tobito.Bottom
@@ -235,6 +235,19 @@ local function on_start_button_clicked(self, e)
     overlay.parentElement:removeChild(overlay)
 
     prepare_next_moves()
+end
+
+local function on_ai_selector_clicked(self, e)
+
+    local player = (self.parentElement.id == "topSelector") and tobito.Top or tobito.Bottom
+
+    local siblings = self.parentElement.children
+    for i = 0, siblings.length - 1 do
+        siblings[i].classList:remove "aiSelected"
+    end
+
+    self.classList:add "aiSelected"
+
 end
 
 local function setup()
@@ -263,10 +276,19 @@ local function setup()
         b:addEventListener("click", on_start_button_clicked)
     end
 
+    local ai_selectors = js.global.document:getElementsByClassName "aiSelectorButton"
+    for i = 0, ai_selectors.length - 1 do
+        local b = ai_selectors[i]
+        b:addEventListener("click", on_ai_selector_clicked)
+    end
+
+    local ai = {[tobito.Top] = "Human", [tobito.Bottom] = "Human"}
+
     context =
     {
         pawns = pawns,
-        triggers = triggers
+        triggers = triggers,
+        ai = ai
     }
 end
 
