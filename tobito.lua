@@ -25,21 +25,6 @@ local function start_state()
 	return s
 end
 
-local function draw_state(s)
-
-	for i = 0,MaxCell do
-		io.write(
-			s[i] == Top and "T" or
-			s[i] == Bottom and "B" or
-			"."
-		)
-		if i % 3 == 2 then
-			io.write "\n"
-		end
-	end
-	print("Next:", s.next_player == Top and "Top" or "Bottom", s.start and "start" or "")
-end
-
 local function state_to_int(s)
 
 	local i = 0
@@ -80,6 +65,28 @@ local function int_to_state(int, s)
 	s.start = (int >> 26) == 1
 
 	return s
+end
+
+local function draw_state(s)
+
+	if type(s) == "number" then
+		s = int_to_state(s)
+	end
+
+	local res = {}
+	for i = 0,MaxCell do
+		table.insert(res,
+			s[i] == Top and "T" or
+			s[i] == Bottom and "B" or
+			"."
+		)
+		if i % 3 == 2 then
+			table.insert(res, "\n")
+		end
+	end
+	table.insert(res, "Next: " .. (s.next_player == Top and "Top" or "Bottom") .. (s.start and "\tstart" or ""))
+
+	return table.concat(res)
 end
 
 local function state_winner(s)
@@ -195,7 +202,7 @@ local function active_pawns(s)
 end
 
 local function moves_from_cell(s, cell)
-	
+
 	local Moves = precompute_moves()
 
 	return coroutine.wrap(function()
@@ -236,7 +243,7 @@ local function moves_from_cell(s, cell)
 end
 
 local function home_row_full(s)
-	
+
 	return (s.next_player == Top and s[0] ~= Empty and s[1] ~= Empty and s[2] ~= Empty) or
 		(s.next_player == Bottom and s[12] ~= Empty and s[13] ~= Empty and s[14] ~= Empty)
 end
@@ -253,7 +260,7 @@ local function valid_moves(s)
 			if w then
 				return
 			end
-			
+
 			local hrf = home_row_full(s)
 
 			for cell in active_pawns(s) do
@@ -347,9 +354,9 @@ return
 	int_to_state = int_to_state,
 	start_state = start_state,
 	draw_state = draw_state,
-	
+
 	valid_moves = valid_moves,
 	apply_move = apply_move,
-	
+
 	state_winner = state_winner
 }

@@ -54,7 +54,7 @@ local function state_to_int()
     end
 
     s.next_player = context.next_player
-    s.start = true
+    s.start = context.start
 
     return tobito.state_to_int(s)
 end
@@ -89,6 +89,23 @@ local function on_pawn_clicked(self, e)
     end
 end
 
+local function make_move(pawn, dest)
+
+    pawn.parentElement:appendChild(pawn)
+
+    js.global:setTimeout(function()
+
+        set_pawn_cell(pawn, dest)
+
+        context.next_player = context.next_player == tobito.Top and tobito.Bottom or tobito.Top
+        context.start = false
+
+
+        print(tobito.draw_state(state_to_int()))
+    end, 0.01)
+
+end
+
 local function on_trigger_clicked(self, e)
 
     local cell = get_div_cell(self)
@@ -103,11 +120,7 @@ local function on_trigger_clicked(self, e)
         local pawn = context.selected
         deselect()
 
-        pawn.parentElement:appendChild(pawn)
-
-        js.global:setTimeout(function()
-            set_pawn_cell(pawn, cell)
-        end, 0.01)
+        make_move(pawn, cell)
     end
 
 end
@@ -120,8 +133,12 @@ local function on_start_button_clicked(self, e)
         context.next_player = tobito.Bottom
     end
 
+    context.start = true
+
     local overlay = js.global.document:getElementById "startSelector"
     overlay.parentElement:removeChild(overlay)
+
+    print(tobito.draw_state(state_to_int()))
 end
 
 local function setup()
