@@ -74,19 +74,73 @@ end
 
 local function on_pawn_clicked(self, e)
 
-    local cell = get_div_cell(self)
-    local player = get_pawn_player(self)
+    if context.pending_relocations then
 
-    if player ~= context.next_player then
-        return
-    end
+        if self.classList:contains "toRelocate" then
+            select(self)
+        end
 
-    if context.selected == self then
-        deselect()
     else
-        deselect()
-        select(self)
+        local cell = get_div_cell(self)
+        local player = get_pawn_player(self)
+
+        if player ~= context.next_player then
+            return
+        end
+
+        if context.selected == self then
+            deselect()
+        else
+            deselect()
+            select(self)
+        end
     end
+end
+
+local function prepare_next_moves()
+
+    local int = state_to_int()
+    local s = tobito.int_to_state(int)
+
+    print(tobito.draw_state(s))
+
+    context.next_moves = {}
+
+    for m in tobito.valid_moves(s) do
+        print(table.concat(m, ","))
+        table.insert(context.next_moves, m)
+    end
+
+end
+
+local function get_relocations(from, to)
+
+    local res = {}
+
+    local to_relocate = {}
+    local destinations = {}
+
+    for _,m in ipairs(context.next_moves) do
+        if m[1] == from and m[2] == to then
+            for i = 3,#m,2 do
+                to_relocate[m[i]] = true
+                destinations[m[i+1]] = true
+            end
+        end
+    end
+
+    return to_relocate, destinations
+end
+
+local function end_of_move_admin()
+    context.pending_relocations = false
+    context.to_relocate = {}
+    context.relocate_destinations = {}
+
+    context.next_player = context.next_player == tobito.Top and tobito.Bottom or tobito.Top
+    context.start = false
+
+    prepare_next_moves()
 end
 
 local function make_move(pawn, dest)
@@ -95,25 +149,49 @@ local function make_move(pawn, dest)
 
     js.global:setTimeout(function()
 
+        local to_relocate,destinations = get_relocations(get_div_cell(pawn), dest)
+
+        context.pending_relocations = false
+
+        for cell,_ in pairs(to_relocate) do
+            context.pending_relocations = true
+            context.to_relocate = to_relocate
+            context.relocate_destinations = destinations
+
+            local p = get_pawn_at_cell(cell)
+            p.classList:add "toRelocate"
+        end
+
         set_pawn_cell(pawn, dest)
 
-        context.next_player = context.next_player == tobito.Top and tobito.Bottom or tobito.Top
-        context.start = false
+        -- Move admin
 
-
-        print(tobito.draw_state(state_to_int()))
+        if not context.pending_relocations then
+            end_of_move_admin()
+        end
     end, 0.01)
 
+end
+
+local function is_valid_move(from, to)
+
+    for _,m in ipairs(context.next_moves) do
+        if m[1] == from and m[2] == to then
+            return true
+        end
+    end
+
+    return false
 end
 
 local function on_trigger_clicked(self, e)
 
     local cell = get_div_cell(self)
 
-    if context.selected then
+    if context.selected and not context.pending_relocations then
 
-        local previous = get_pawn_at_cell(cell)
-        if previous then
+        local valid = is_valid_move(get_div_cell(context.selected), cell)
+        if not valid then
             return
         end
 
@@ -121,6 +199,24 @@ local function on_trigger_clicked(self, e)
         deselect()
 
         make_move(pawn, cell)
+
+    elseif context.selected and context.pending_relocations then
+
+        assert(context.selected.classList:contains "toRelocate")
+        if context.relocate_destinations[cell] then
+
+            context.to_relocate[get_div_cell(context.selected)] = nil
+            context.relocate_destinations[cell] = nil
+
+            set_pawn_cell(context.selected, cell)
+            context.selected.classList:remove "toRelocate"
+            deselect()
+
+            if not next(context.to_relocate) then
+                end_of_move_admin()
+            end
+        end
+
     end
 
 end
@@ -138,7 +234,7 @@ local function on_start_button_clicked(self, e)
     local overlay = js.global.document:getElementById "startSelector"
     overlay.parentElement:removeChild(overlay)
 
-    print(tobito.draw_state(state_to_int()))
+    prepare_next_moves()
 end
 
 local function setup()

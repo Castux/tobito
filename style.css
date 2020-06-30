@@ -35,6 +35,11 @@
     animation-direction: alternate;
 }
 
+.toRelocate
+{
+    border-color: yellow !important;
+}
+
 .bottom
 {
     background: #34AACE;
