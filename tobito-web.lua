@@ -84,7 +84,16 @@ local function on_pawn_clicked(self, e)
         local cell = get_div_cell(self)
         local player = get_pawn_player(self)
 
-        if player ~= context.next_player then
+        local valid = false
+
+        for _,m in ipairs(context.next_moves) do
+            if m[1] == cell then
+                valid = true
+                break
+            end
+        end
+
+        if not valid then
             return
         end
 
