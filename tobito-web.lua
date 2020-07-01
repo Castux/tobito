@@ -211,19 +211,26 @@ local function on_trigger_clicked(self, e)
 
     elseif context.selected and context.pending_relocations then
 
-        assert(context.selected.classList:contains "toRelocate")
+        local pawn = context.selected
+
         if context.relocate_destinations[cell] then
 
-            context.to_relocate[get_div_cell(context.selected)] = nil
+            context.to_relocate[get_div_cell(pawn)] = nil
             context.relocate_destinations[cell] = nil
 
-            set_pawn_cell(context.selected, cell)
-            context.selected.classList:remove "toRelocate"
-            deselect()
+            pawn.parentElement:appendChild(pawn)
 
-            if not next(context.to_relocate) then
-                end_of_move_admin()
-            end
+            js.global:setTimeout(function()
+
+                set_pawn_cell(pawn, cell)
+                pawn.classList:remove "toRelocate"
+                deselect()
+
+                if not next(context.to_relocate) then
+                    end_of_move_admin()
+                end
+            end, 0.1)
+
         end
 
     end
