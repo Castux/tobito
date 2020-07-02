@@ -253,31 +253,3 @@ local function save_all_data()
 
 	fp:close()
 end
-
-local function load_all_data()
-	
-	local fp = io.open("data.dat", "rb")
-	local len = string.packsize(pack_fmt)
-	
-	local top, bottom, win = {}, {}, {}
-	
-	for str in fp:lines(len) do
-		local state, w, t, b = string.unpack(pack_fmt, str)
-	
-		win[state] = w
-		top[state] = t
-		bottom[state] = b
-	end
-	
-	fp:close()
-	
-	return win, top, bottom
-end
-
-local win, top, bottom = load_all_data()
-
-for k,v in pairs(win) do
-	if v == 1 then
-		print(tobito.draw_state(k))
-	end
-end
