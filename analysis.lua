@@ -135,91 +135,149 @@ local function compute_heatmap()
 	local Graph = require "graph"
 	local tmp_state = {}
 
-	local heat = {}
+	local heat_top = {}
+	local heat_bottom = {}
 
 	local count = 0
 
 	for int,entry in pairs(Graph) do
 
-		count = count + 1
-		print(count)
-
 		tobito.int_to_state(int, tmp_state)
 		local w = tobito.state_winner(tmp_state)
 
 		if w then
+			
+			count = count + 1
+			print(count)
+			
+			local heat = (w == tobito.Top) and heat_top or heat_bottom
 
 			local distances = dofile("dist/" .. int .. ".lua")
 
 			for s,d in pairs(distances) do
 
 				if d == 0 then
-					heat[s] = (w == Top and 1e6 or -1e6)
+					heat[s] = 65
 				else
-					heat[s] = (heat[s] or 0) + (w == Top and 1 or -1) * 1 / (d*d)
+					heat[s] = (heat[s] or 0) + 1 / (d*d)
 				end
 			end
 		end
 	end
 
-	return heat
+	return heat_top, heat_bottom
 end
 
-local function save_heatmap(heat)
+local function compute_sure_wins()
+	
+	local Graph = require "graph"
+	
+	local queue = {}
+	local next_queue = {}
+	local results = {}
+	
+	local tmp_state = {}
+	
+	-- Init queue
+	
+	for int,_ in pairs(Graph) do
+		
+		tobito.int_to_state(int, tmp_state)
+		local w = tobito.state_winner(tmp_state)
+		
+		if w == tobito.Top then
+			results[int] = 1
+		elseif w == tobito.Bottom then
+			results[int] = -1
+		end
+		
+		for _,parent in ipairs(Graph[int].parents) do
+			queue[parent] = true
+		end
+	end
+	
+	-- Process
+	
+	while next(queue) do
+		for int,_ in pairs(queue) do
+			
+			local player = (int >> 24) & 0x3
+			
+			local fun,best
+			if player == tobito.Top then
+				fun = math.max
+				best = -10
+			else
+				fun = math.min
+				best = 10
+			end
+			
+			for _,child in ipairs(Graph[int].children) do
+				best = fun(best, results[child] or 0)
+			end
+			
+			results[int] = best
+			
+			for _,parent in ipairs(Graph[int].parents) do
+				if not results[parent] then
+					next_queue[parent] = true
+				end
+			end
+		end
+		
+		queue = next_queue
+		next_queue = {}
+	end
+	
+	return results
+end
 
-	local fp = io.open("heatmap.lua", "w")
-	fp:write "return {\n"
+local pack_fmt = "LbHH"
 
-	for k,v in pairs(heat) do
-		fp:write(string.format("[%d] = %f,\n", k, v))
+local function save_all_data()
+	
+	local top, bottom = compute_heatmap()
+	local wins = compute_sure_wins()
+
+	local fp = io.open("data.dat", "wb")
+	
+	for k,_ in pairs(wins) do
+		
+		local t = math.floor((top[k] or 0) * 1000)
+		local b = math.floor((bottom[k] or 0) * 1000)
+		local w = wins[k]
+		
+		local packed = string.pack(pack_fmt, k, w, t, b)
+		fp:write(packed)
 	end
 
-	fp:write "}"
 	fp:close()
 end
 
-local function show_heatmap()
-
-	local heat = dofile "heatmap.lua"
-
-	local list = {}
-	for k,v in pairs(heat) do
-		table.insert(list, k)
+local function load_all_data()
+	
+	local fp = io.open("data.dat", "rb")
+	local len = string.packsize(pack_fmt)
+	
+	local top, bottom, win = {}, {}, {}
+	
+	for str in fp:lines(len) do
+		local state, w, t, b = string.unpack(pack_fmt, str)
+	
+		win[state] = w
+		top[state] = t
+		bottom[state] = b
 	end
-
-	table.sort(list, function(a,b)
-			return heat[a] < heat[b]
-		end)
-
-	local tmp_state = {}
-
-	for _,v in pairs(list) do
-
-		print "====="
-		tobito.int_to_state(v, tmp_state)
-		tobito.draw_state(tmp_state)
-		print(heat[v])
-	end
+	
+	fp:close()
+	
+	return win, top, bottom
 end
 
-local function decide_state(s)
+local win, top, bottom = load_all_data()
 
-	local heat = require "heatmap"
-	local graph = require "graph"
-
-	local int = state_to_int(s)
-	tobito.draw_state(s)
-
-	for _,child in ipairs(graph[int].children) do
-		print "==="
-		tobito.draw_state(tobito.int_to_state(child))
-		print(heat[child])
+for k,v in pairs(win) do
+	if v == 1 then
+		print(tobito.draw_state(k))
 	end
-
 end
-
---save_graph(compute_graph())
-compute_all_win_state_distances()
---save_heatmap(compute_heatmap())
---show_heatmap()
---decide_state(start_state())
