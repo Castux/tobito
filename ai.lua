@@ -91,9 +91,20 @@ local function debug_state(state)
 	
 end
 
-return
-{
-	load_all_data = load_all_data,
-	decide_state = decide_state,
-	debug_state = debug_state
-}
+local ai_fmt = "LLLL"
+
+local function decide_all()
+	
+	load_all_data(io.open("data.dat", "rb"):read("a"))
+	local out = io.open("ai.dat", "wb")
+	
+	for state,_ in pairs(graph) do
+		
+		local a,b,p = decide_state(state)
+		out:write(string.pack(ai_fmt, state, a or 0, b or 0, p or 0))
+	end
+	
+	out:close()
+end
+
+decide_all()

@@ -2,6 +2,7 @@ local js = require "js"
 local tobito = require "tobito"
 
 local context
+local ai_data
 
 local function get_div_cell(div)
     for i = 0, div.classList.length - 1 do
@@ -104,6 +105,49 @@ local function on_pawn_clicked(self, e)
             select(self)
         end
     end
+end
+
+local function load_ai_data()
+
+    local ai = {[tobito.Top] = "Human", [tobito.Bottom] = "Human"}
+    local ai_data =
+    {
+        aggressive = {},
+        balanced = {},
+        prudent = {}
+    }
+
+    local req = js.new(js.global.XMLHttpRequest)
+    req:open('GET', "ai.dat")
+    req.responseType = "arraybuffer"
+    req.onload = function()
+
+        print "AI data loading"
+
+        local arr = js.new(js.global.Uint32Array, req.response)
+        local count = 0
+
+        for i = 0, arr.length - 1, 4 do
+            local state, agr, bal, pru = arr[i], arr[i+1], arr[i+2], arr[i+3]
+
+            ai_data.aggressive[state] = agr
+            ai_data.balanced[state] = bal
+            ai_data.prudent[state] = pru
+
+            count = count + 1
+        end
+
+        print("Loaded", count)
+    end
+
+    req:send()
+
+end
+
+local function print_ai_debug()
+
+
+
 end
 
 local function prepare_next_moves()
@@ -298,7 +342,7 @@ local function setup()
         b:addEventListener("click", on_ai_selector_clicked)
     end
 
-    local ai = {[tobito.Top] = "Human", [tobito.Bottom] = "Human"}
+    load_ai_data()
 
     context =
     {
