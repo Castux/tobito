@@ -4,6 +4,8 @@ local tobito = require "tobito"
 local context
 local ai_data
 
+local end_of_move_admin
+
 local function get_div_cell(div)
     for i = 0, div.classList.length - 1 do
         local class = div.classList[i]
@@ -109,8 +111,8 @@ end
 
 local function load_ai_data()
 
-    local ai = {[tobito.Top] = "Human", [tobito.Bottom] = "Human"}
-    local ai_data =
+    context.ai = {[tobito.Top] = "Human", [tobito.Bottom] = "Human"}
+    ai_data =
     {
         aggressive = {},
         balanced = {},
@@ -122,10 +124,7 @@ local function load_ai_data()
     req.responseType = "arraybuffer"
     req.onload = function()
 
-        print "AI data loading"
-
         local arr = js.new(js.global.Uint32Array, req.response)
-        local count = 0
 
         for i = 0, arr.length - 1, 4 do
             local state, agr, bal, pru = arr[i], arr[i+1], arr[i+2], arr[i+3]
@@ -133,21 +132,83 @@ local function load_ai_data()
             ai_data.aggressive[state] = agr
             ai_data.balanced[state] = bal
             ai_data.prudent[state] = pru
-
-            count = count + 1
         end
 
-        print("Loaded", count)
+        local loadingScreen = js.global.document:getElementById "loadingScreen"
+        loadingScreen.style.display = "none";
     end
 
     req:send()
-
 end
 
 local function print_ai_debug()
 
+    local box = js.global.document:getElementById "debugBox"
 
+    local str = {}
+    table.insert(str, "Aggressive")
+    table.insert(str, tobito.draw_state(ai_data.aggressive[state_to_int()]))
 
+    table.insert(str, "\n")
+
+    table.insert(str, "Balanced")
+    table.insert(str, tobito.draw_state(ai_data.balanced[state_to_int()]))
+
+    table.insert(str, "\n")
+
+    table.insert(str, "Prudent")
+    table.insert(str, tobito.draw_state(ai_data.prudent[state_to_int()]))
+
+    box.innerHTML = table.concat(str, "\n")
+end
+
+local function apply_ai_move(m)
+
+    for i = 1,#m,2 do
+        local pawn = get_pawn_at_cell(m[i])
+        set_pawn_cell(pawn, m[i+1])
+    end
+
+    end_of_move_admin()
+end
+
+local function try_ai_move()
+
+    local ai = context.ai[context.next_player]
+    if ai == "Human" then
+        return
+    end
+
+    local array
+    if ai == "Aggressive AI" then
+        array = ai_data.aggressive
+    elseif ai == "Balanced AI" then
+        array = ai_data.balanced
+    elseif ai == "Prudent AI" then
+        array = ai_data.prudent
+    else
+        error "Bad AI button"
+    end
+
+    local state_int = state_to_int()
+    local ai_pick = array[state_int]
+    local ai_move
+
+    for _,move in ipairs(context.next_moves) do
+
+        local state = tobito.int_to_state(state_int)
+        tobito.apply_move(state, move)
+        local next_state_int = tobito.state_to_int(state)
+
+        if next_state_int == ai_pick then
+            ai_move = move
+            break
+        end
+    end
+
+    if ai_move then
+        apply_ai_move(ai_move)
+    end
 end
 
 local function prepare_next_moves()
@@ -155,15 +216,14 @@ local function prepare_next_moves()
     local int = state_to_int()
     local s = tobito.int_to_state(int)
 
-    print(tobito.draw_state(s))
-
     context.next_moves = {}
 
     for m in tobito.valid_moves(s) do
-        print(table.concat(m, ","))
         table.insert(context.next_moves, m)
     end
 
+    print_ai_debug()
+    try_ai_move()
 end
 
 local function get_relocations(from, to)
@@ -185,7 +245,7 @@ local function get_relocations(from, to)
     return to_relocate, destinations
 end
 
-local function end_of_move_admin()
+end_of_move_admin = function()
     context.pending_relocations = false
     context.to_relocate = {}
     context.relocate_destinations = {}
@@ -193,7 +253,9 @@ local function end_of_move_admin()
     context.next_player = context.next_player == tobito.Top and tobito.Bottom or tobito.Top
     context.start = false
 
-    prepare_next_moves()
+    js.global:setTimeout(function()
+        prepare_next_moves()
+    end, 1000)
 end
 
 local function make_move(pawn, dest)
@@ -225,6 +287,7 @@ local function make_move(pawn, dest)
     end, 0.01)
 
 end
+
 
 local function is_valid_move(from, to)
 
@@ -308,6 +371,11 @@ local function on_ai_selector_clicked(self, e)
 
     self.classList:add "aiSelected"
 
+    context.ai[player] = self.innerHTML
+
+    if context.next_player then
+        try_ai_move()
+    end
 end
 
 local function setup()
@@ -342,14 +410,13 @@ local function setup()
         b:addEventListener("click", on_ai_selector_clicked)
     end
 
-    load_ai_data()
-
     context =
     {
         pawns = pawns,
-        triggers = triggers,
-        ai = ai
+        triggers = triggers
     }
+
+    load_ai_data()
 end
 
 setup()
