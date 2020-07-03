@@ -232,6 +232,73 @@ local function compute_sure_wins()
 	return results
 end
 
+local function compute_sure_wins2()
+	
+	local Graph = require "graph"
+	
+	local queue = {}
+	local next_queue = {}
+	local counts = {}
+	local wins = {}
+	
+	local tmp_state = {}
+	
+	for int in pairs(Graph) do
+		
+		tobito.int_to_state(int, tmp_state)
+		local w = tobito.state_winner(tmp_state)
+		
+		if w then
+			wins[int] = w
+			table.insert(queue, int)
+		else
+			counts[int] = #Graph[int].children
+		end
+	end
+	
+	while #queue > 0 do
+		print(#queue)
+		for _,int in ipairs(queue) do
+			
+			tobito.int_to_state(int, tmp_state)
+			local player = tmp_state.next_player
+			
+			for _,parent in ipairs(Graph[int].parents) do
+				if counts[parent] then
+					
+					if wins[int] and wins[int] ~= player then
+						
+						wins[parent] = wins[int]
+						counts[parent] = nil
+						table.insert(next_queue, parent)
+						
+					elseif wins[int] and wins[int] == player then
+						
+						counts[parent] = counts[parent] - 1
+						if counts[parent] == 0 then
+							wins[parent] = wins[int]
+							counts[parent] = nil
+							table.insert(next_queue, parent)
+						end
+					end
+				
+				end
+			end
+		end
+		print("next", #next_queue)
+		queue = next_queue
+		next_queue = {}
+	end
+	
+	return wins	
+end
+
+local count = 0
+for k,v in pairs(compute_sure_wins2()) do
+	count = count + 1
+end
+print(count)
+
 local pack_fmt = "LbHH"
 
 local function save_all_data()
