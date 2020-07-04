@@ -200,7 +200,7 @@ local function prepare_next_moves()
     for m in tobito.valid_moves(s) do
         table.insert(context.next_moves, m)
     end
-    
+
     try_ai_move()
 end
 
@@ -333,7 +333,7 @@ local function on_start_button_clicked(self, e)
     context.start = true
 
     local overlay = js.global.document:getElementById "startSelector"
-    overlay.parentElement:removeChild(overlay)
+    overlay.style.display = "none"
 
     prepare_next_moves()
 end
@@ -354,6 +354,33 @@ local function on_ai_selector_clicked(self, e)
     if context.next_player then
         try_ai_move()
     end
+end
+
+local function reset()
+
+    local top_index = 0
+    local bottom_index = 12
+
+    for _,pawn in ipairs(context.pawns) do
+
+        if get_pawn_player(pawn) == tobito.Top then
+            set_pawn_cell(pawn, top_index)
+            top_index = top_index + 1
+        else
+            set_pawn_cell(pawn, bottom_index)
+            bottom_index = bottom_index + 1
+        end
+
+    end
+
+    context.next_player = nil
+    context.next_moves = {}
+
+    local overlay = js.global.document:getElementById "startSelector"
+    overlay.style:removeProperty "display"
+
+    overlay.parentElement:appendChild(overlay)
+
 end
 
 local function setup()
@@ -387,6 +414,9 @@ local function setup()
         local b = ai_selectors[i]
         b:addEventListener("click", on_ai_selector_clicked)
     end
+
+    local reset_button = js.global.document:getElementById "resetButton"
+    reset_button:addEventListener("click", reset)
 
     context =
     {
