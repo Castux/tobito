@@ -262,6 +262,19 @@ body
     background: #34AACEAA !important;
 }
 
+#footer
+{
+    position: absolute;
+    bottom: 0px;
+    width: 100%;
+}
+
+#footer p
+{
+    height: 36px;
+    line-height: 36px;
+}
+
 #resetButton
 {
     position: absolute;
