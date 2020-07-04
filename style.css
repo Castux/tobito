@@ -9,14 +9,31 @@ body
 
 #wholePage
 {
-    width: 100%;
+    width: 680px;
     height: 100vh;
     display: flex;
+    margin: 0 auto;
+
+    position: relative;
 }
 
 #container
 {
     margin: auto;
+}
+
+.starterButton, .aiSelectorButton, #resetButton
+{
+    border: 5px solid #0A0B4C;
+    border-radius: 20px;
+    user-select: none;
+    cursor: pointer;
+    background: white;
+    padding: 10px;
+    margin: 10px;
+
+    font-weight: bold;
+    text-align: center;
 }
 
 .board
@@ -180,7 +197,7 @@ body
 #loadingScreen
 {
     position: absolute;
-    width: 100%;
+    width: 680px;
     height: 100%;
     background: rgb(255, 255, 255, 0.9);
 }
@@ -210,18 +227,9 @@ body
 {
     width: 80%;
     height: 120px;
-    border: 5px solid #0A0B4C;
-    border-radius: 20px;
-    background: white;
 
-    text-align: center;
     font-size: 60px;
     line-height: 140px;
-
-    cursor: pointer;
-    user-select: none;
-
-    margin: 20px auto;
 }
 
 .aiSelector
@@ -239,21 +247,9 @@ body
 
 .aiSelectorButton
 {
-    border: 5px solid #0A0B4C;
-    border-radius: 20px;
-
-    text-align: center;
     font-size: 20px;
-    font-weight: bold;
     line-height: 42px;
     height: 36px;
-
-    padding: 10px;
-    margin: 10px;
-
-    user-select: none;
-    cursor: pointer;
-    background: white;
 }
 
 #topSelector > .aiSelected
@@ -264,4 +260,15 @@ body
 #bottomSelector > .aiSelected
 {
     background: #34AACEAA !important;
+}
+
+#resetButton
+{
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+
+    height: 36px;
+    line-height: 42px;
+    font-size: 20px;
 }
