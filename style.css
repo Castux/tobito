@@ -264,21 +264,21 @@ body
 
 #footer
 {
-    position: absolute;
-    bottom: 0px;
+    margin-top: 20px;
     width: 100%;
+    display: flex;
+    justify-content: space-between;
 }
 
-#footer p
+#footerText
 {
-    height: 36px;
-    line-height: 36px;
+    height: 86px;
+    line-height: 86px;
     margin-left: 10px;
 }
 
 #resetButton
 {
-    position: absolute;
     bottom: 0px;
     right: 0px;
 
