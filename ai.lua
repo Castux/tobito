@@ -19,6 +19,8 @@ local function load_all_data(data_str)
 
 		index = next_index
 	end
+	
+	print("Loaded data")
 end
 
 local function max_for(values, func)
@@ -48,8 +50,11 @@ local function decide_state(state)
 	local win_value = nil
 	local acceptable_children = {}
 
-	for _,child in pairs(children) do
+	for _,child in ipairs(children) do
 
+		if not win[child]then
+			print(tobito.draw_state(child))
+		end
 		local child_value = m * win[child]
 		if not win_value or child_value > win_value then
 			win_value = child_value

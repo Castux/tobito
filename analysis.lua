@@ -174,70 +174,6 @@ local function compute_sure_wins()
 	
 	local queue = {}
 	local next_queue = {}
-	local results = {}
-	
-	local tmp_state = {}
-	
-	-- Init queue
-	
-	for int,_ in pairs(Graph) do
-		
-		tobito.int_to_state(int, tmp_state)
-		local w = tobito.state_winner(tmp_state)
-		
-		if w == tobito.Top then
-			results[int] = 1
-		elseif w == tobito.Bottom then
-			results[int] = -1
-		end
-		
-		for _,parent in ipairs(Graph[int].parents) do
-			queue[parent] = true
-		end
-	end
-	
-	-- Process
-	
-	while next(queue) do
-		for int,_ in pairs(queue) do
-			
-			local player = (int >> 24) & 0x3
-			
-			local fun,best
-			if player == tobito.Top then
-				fun = math.max
-				best = -10
-			else
-				fun = math.min
-				best = 10
-			end
-			
-			for _,child in ipairs(Graph[int].children) do
-				best = fun(best, results[child] or 0)
-			end
-			
-			results[int] = best
-			
-			for _,parent in ipairs(Graph[int].parents) do
-				if not results[parent] then
-					next_queue[parent] = true
-				end
-			end
-		end
-		
-		queue = next_queue
-		next_queue = {}
-	end
-	
-	return results
-end
-
-local function compute_sure_wins2()
-	
-	local Graph = require "graph"
-	
-	local queue = {}
-	local next_queue = {}
 	local counts = {}
 	local wins = {}
 	
@@ -293,30 +229,37 @@ local function compute_sure_wins2()
 	return wins	
 end
 
-local count = 0
-for k,v in pairs(compute_sure_wins2()) do
-	count = count + 1
-end
-print(count)
-
 local pack_fmt = "LbHH"
 
 local function save_all_data()
 	
+	local graph = require "graph"
 	local top, bottom = compute_heatmap()
 	local wins = compute_sure_wins()
 
 	local fp = io.open("data.dat", "wb")
 	
-	for k,_ in pairs(wins) do
+	local count = 0
+	for k,_ in pairs(graph) do
 		
 		local t = math.floor((top[k] or 0) * 1000)
 		local b = math.floor((bottom[k] or 0) * 1000)
-		local w = wins[k]
+		local w = 0
 		
+		if wins[k] == tobito.Top then
+			w = 1
+		elseif wins[k] == tobito.Bottom then
+			w = -1
+		end
+
 		local packed = string.pack(pack_fmt, k, w, t, b)
 		fp:write(packed)
+		
+		count = count + 1
 	end
 
 	fp:close()
+	print("Wrote all data", count)
 end
+
+save_all_data()
