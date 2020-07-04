@@ -10,7 +10,7 @@ body
 #wholePage
 {
     width: 680px;
-    height: 100vh;
+    height: 90vh;
     display: flex;
     margin: 0 auto;
 
@@ -273,6 +273,7 @@ body
 {
     height: 36px;
     line-height: 36px;
+    margin-left: 10px;
 }
 
 #resetButton
