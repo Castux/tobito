@@ -265,10 +265,3 @@ body
 {
     background: #34AACEAA !important;
 }
-
-#debugBox
-{
-    white-space: pre;
-    text-align: left;
-    font-family: monospace;
-}

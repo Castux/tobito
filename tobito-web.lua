@@ -141,27 +141,6 @@ local function load_ai_data()
     req:send()
 end
 
-local function print_ai_debug()
-
-    local box = js.global.document:getElementById "debugBox"
-
-    local str = {}
-    table.insert(str, "Aggressive")
-    table.insert(str, tobito.draw_state(ai_data.aggressive[state_to_int()]))
-
-    table.insert(str, "\n")
-
-    table.insert(str, "Balanced")
-    table.insert(str, tobito.draw_state(ai_data.balanced[state_to_int()]))
-
-    table.insert(str, "\n")
-
-    table.insert(str, "Prudent")
-    table.insert(str, tobito.draw_state(ai_data.prudent[state_to_int()]))
-
-    box.innerHTML = table.concat(str, "\n")
-end
-
 local function apply_ai_move(m)
 
     for i = 1,#m,2 do
@@ -221,8 +200,7 @@ local function prepare_next_moves()
     for m in tobito.valid_moves(s) do
         table.insert(context.next_moves, m)
     end
-
-    print_ai_debug()
+    
     try_ai_move()
 end
 
