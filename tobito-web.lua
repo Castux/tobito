@@ -57,7 +57,6 @@ local function state_to_int()
     end
 
     s.next_player = context.next_player
-    s.start = context.start
 
     return tobito.state_to_int(s)
 end
@@ -229,7 +228,6 @@ end_of_move_admin = function()
     context.relocate_destinations = {}
 
     context.next_player = context.next_player == tobito.Top and tobito.Bottom or tobito.Top
-    context.start = false
 
     js.global:setTimeout(function()
         prepare_next_moves()
@@ -329,8 +327,6 @@ local function on_start_button_clicked(self, e)
     else
         context.next_player = tobito.Bottom
     end
-
-    context.start = true
 
     local overlay = js.global.document:getElementById "startSelector"
     overlay.style.display = "none"

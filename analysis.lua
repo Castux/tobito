@@ -262,4 +262,5 @@ local function save_all_data()
 	print("Wrote all data", count)
 end
 
+save_graph(compute_graph())
 save_all_data()
