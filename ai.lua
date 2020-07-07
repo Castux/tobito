@@ -58,7 +58,7 @@ local function state_score(int, player)
 	return sum
 end
 
-local function decide_state(int, win)
+local function decide_state(int, win, exclude)
 
 	local state = tobito.int_to_state(int)
 	local player = state.next_player
@@ -67,7 +67,7 @@ local function decide_state(int, win)
 
 	local acceptable_children = {}
 
-	for move,child in tobito.valid_moves(state) do
+	for move,child in tobito.valid_moves(state, exclude) do
 		table.insert(acceptable_children, child)
 	end
 

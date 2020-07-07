@@ -158,8 +158,13 @@ local function try_ai_move()
         return
     end
 
+    local exclude
+    if not context.repetitions then
+        exclude = context.positions_played
+    end
+
     local state_int = state_to_int()
-    local agg, bal, pru = tobito_ai.decide_state(state_int, ai_data)
+    local agg, bal, pru = tobito_ai.decide_state(state_int, ai_data, exclude)
 
     local ai_pick
     if ai == "Aggressive AI" then
@@ -194,11 +199,17 @@ end
 local function prepare_next_moves()
 
     local int = state_to_int()
+    context.positions_played[int] = true
+
     local s = tobito.int_to_state(int)
 
+    local exclude
+    if not context.repetitions then
+        exclude = context.positions_played
+    end
     context.next_moves = {}
 
-    for m in tobito.valid_moves(s) do
+    for m in tobito.valid_moves(s, exclude) do
         table.insert(context.next_moves, m)
     end
 
@@ -330,6 +341,9 @@ local function on_start_button_clicked(self, e)
         context.next_player = tobito.Bottom
     end
 
+    context.positions_played = {}
+    context.positions_played[state_to_int()] = true
+
     local overlay = js.global.document:getElementById "startSelector"
     overlay.style.display = "none"
 
@@ -373,11 +387,25 @@ local function reset()
 
     context.next_player = nil
     context.next_moves = {}
+    context.positions_played = {}
 
     local overlay = js.global.document:getElementById "startSelector"
     overlay.style:removeProperty "display"
 
     overlay.parentElement:appendChild(overlay)
+
+end
+
+local function toggle_repetitions()
+
+    local rep_button = js.global.document:getElementById "repButton"
+
+    context.repetitions = not context.repetitions
+    if context.repetitions then
+        rep_button.innerHTML = "Repetitions ok"
+    else
+        rep_button.innerHTML = "No repetitions"
+    end
 
 end
 
@@ -416,10 +444,14 @@ local function setup()
     local reset_button = js.global.document:getElementById "resetButton"
     reset_button:addEventListener("click", reset)
 
+    local rep_button = js.global.document:getElementById "repButton"
+    rep_button:addEventListener("click", toggle_repetitions)
+
     context =
     {
         pawns = pawns,
-        triggers = triggers
+        triggers = triggers,
+        repetitions = false
     }
 
     load_ai_data()

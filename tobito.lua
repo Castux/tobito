@@ -249,9 +249,10 @@ local function apply_move(s, m)
 	s.next_player = s.next_player == Top and Bottom or Top
 end
 
-local function valid_moves(s)
+local function valid_moves(s, exclude)
 	return coroutine.wrap(function()
 
+			local exclude = exclude or {}
 			local int = state_to_int(s)
 			local player = s.next_player
 
@@ -266,8 +267,10 @@ local function valid_moves(s)
 					-- Try applying move to check for passivity
 
 					apply_move(s, move)
-					if not home_row_full(s, player) then
-						coroutine.yield(move, state_to_int(s))
+					local child_int = state_to_int(s)
+					
+					if not exclude[child_int] and not home_row_full(s, player) then
+						coroutine.yield(move, child_int)
 					end
 
 					int_to_state(int, s)
