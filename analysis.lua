@@ -8,26 +8,38 @@ local function compute_graph()
 
 	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Top)))
 	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Bottom)))
+	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Top, true)))
+	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Bottom, true)))
 	
 	local tmp_state = {}
+	local count = 0
 
 	while #queue > 0 do
-		print (#queue)
+		
 		for _,int in ipairs(queue) do
+			
+			count = count + 1
+			if count % 10000 == 0 then
+				print(count, string.format("%.2f%%", count / 1824973 * 100))
+			end
 
 			tobito.int_to_state(int, tmp_state)
-			local children = {}
+			local children_count = 0
 
 			for move,child in tobito.valid_moves(tmp_state) do
 				
-				table.insert(children, child)
+				children_count = children_count + 1
+				
+				states[child] = (states[child] or {})
+				table.insert(states[child], int)
 
-				if not states[child] then
+				if not states[child].children_count then
 					next_queue[child] = true
 				end
 			end
 
-			states[int] = { children = children, parents = {} }
+			states[int] = states[int] or {}
+			states[int].children_count = children_count
 		end
 
 		queue = {}
@@ -36,13 +48,10 @@ local function compute_graph()
 		end
 		next_queue = {}
 	end
-
-	for int,entry in pairs(states) do
-		for _,child in ipairs(entry.children) do
-			table.insert(states[child].parents, int)
-		end
-	end
-
+	
+	::done::
+	
+	print("Total", count)
 	return states
 end
 
@@ -51,7 +60,7 @@ local function save_graph(graph)
 	local fp = io.open("graph.lua", "w")
 	fp:write "return {\n"
 	for k,v in pairs(graph) do
-		fp:write(string.format("[%d] = { children = {%s}, parents = {%s} },\n", k, table.concat(v.children, ","), table.concat(v.parents, ",")))
+		fp:write(string.format("[%d] = { children_count = %d, %s },\n", k, v.children_count or 0, table.concat(v, ",")))
 	end
 	fp:write "}"
 	fp:close()
@@ -143,4 +152,4 @@ local function save_all_data()
 end
 
 save_graph(compute_graph())
-save_all_data()
+--save_all_data()
