@@ -1,6 +1,6 @@
 local tobito = require "tobito"
 
-local pack_fmt = "LbHH"
+local pack_fmt = "LLLL"
 
 local function load_all_data(data_str)
 
@@ -11,7 +11,7 @@ local function load_all_data(data_str)
 
 		local state, w, t, b, next_index = string.unpack(pack_fmt, data_str, index)
 
-		win[state] = w
+		win[state] = (w == tobito.Top) and 1 or (w == tobito.Bottom) and -1 or 0
 		top[state] = t
 		bottom[state] = b
 
@@ -49,9 +49,6 @@ local function decide_state(int, win, top, bottom)
 
 	for move,child in tobito.valid_moves(state) do
 
-		if not win[child]then
-			print(tobito.draw_state(child))
-		end
 		local child_value = m * win[child]
 		if not win_value or child_value > win_value then
 			win_value = child_value

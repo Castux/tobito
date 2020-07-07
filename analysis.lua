@@ -244,13 +244,7 @@ local function save_all_data()
 		
 		local t = math.floor((top[k] or 0) * 1000)
 		local b = math.floor((bottom[k] or 0) * 1000)
-		local w = 0
-		
-		if wins[k] == tobito.Top then
-			w = 1
-		elseif wins[k] == tobito.Bottom then
-			w = -1
-		end
+		local w = wins[k] or tobito.Empty
 
 		local packed = string.pack(pack_fmt, k, w, t, b)
 		fp:write(packed)

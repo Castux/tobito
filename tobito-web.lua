@@ -125,31 +125,27 @@ local function load_ai_data()
     req.responseType = "arraybuffer"
     req.onload = function()
 
-        local arr = js.new(js.global.Uint8Array, req.response)
+        local arr = js.new(js.global.Uint32Array, req.response)
         local unit_len = string.packsize(tobito_ai.pack_fmt)
 
-        local index = 0
-        local tmp = {}
-        while index <= arr.length - 1 do
+        for i = 0, arr.length - 1, 4 do
+            local state = arr[i]
+            local win = arr[i+1]
+            local top = arr[i+2]
+            local bottom = arr[i+3]
 
-            for i = 1, unit_len do
-                tmp[i] = arr[index + i - 1]
-            end
-
-            local str = string.char(table.unpack(tmp))
-
-            local state, win, top, bottom = string.unpack(tobito_ai.pack_fmt, str)
-
-            ai_data.win[state] = win
+            ai_data.win[state] =
+                (win == tobito.Top) and 1
+                or (win == tobito.Bottom) and -1
+                or 0
             ai_data.top[state] = top
             ai_data.bottom[state] = bottom
-
-            index = index + unit_len
         end
 
         local loadingScreen = js.global.document:getElementById "loadingScreen"
         loadingScreen.style.display = "none";
     end
+
 
     req:send()
 end
