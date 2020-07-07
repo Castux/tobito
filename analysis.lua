@@ -6,30 +6,25 @@ local function compute_graph()
 	local queue = {}
 	local next_queue = {}
 
-	local ss = tobito.start_state()
-	ss.next_player = tobito.Top
-	table.insert(queue, tobito.state_to_int(ss))
-	ss.next_player = tobito.Bottom
-	table.insert(queue, tobito.state_to_int(ss))
+	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Top)))
+	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Bottom)))
+	
+	local tmp_state = {}
 
 	while #queue > 0 do
 		print (#queue)
 		for _,int in ipairs(queue) do
 
-			local state = tobito.int_to_state(int)
+			tobito.int_to_state(int, tmp_state)
 			local children = {}
 
-			for m in tobito.valid_moves(state) do
-				tobito.apply_move(m, state)
-				child = tobito.state_to_int(state)
-
+			for move,child in tobito.valid_moves(tmp_state) do
+				
 				table.insert(children, child)
 
 				if not states[child] then
 					next_queue[child] = true
 				end
-
-				tobito.int_to_state(int, state)
 			end
 
 			states[int] = { children = children, parents = {} }
