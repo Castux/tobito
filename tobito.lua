@@ -267,7 +267,7 @@ local function valid_moves(s)
 
 					apply_move(s, move)
 					if not home_row_full(s, player) then
-						coroutine.yield(move)
+						coroutine.yield(move, state_to_int(s))
 					end
 
 					int_to_state(int, s)

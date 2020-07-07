@@ -1,5 +1,7 @@
 local js = require "js"
 local tobito = require "tobito"
+local tobito_ai = require "ai"
+
 
 local context
 local ai_data
@@ -113,24 +115,36 @@ local function load_ai_data()
     context.ai = {[tobito.Top] = "Human", [tobito.Bottom] = "Human"}
     ai_data =
     {
-        aggressive = {},
-        balanced = {},
-        prudent = {}
+        win = {},
+        top = {},
+        bottom = {}
     }
 
     local req = js.new(js.global.XMLHttpRequest)
-    req:open('GET', "ai.dat")
+    req:open('GET', "data.dat")
     req.responseType = "arraybuffer"
     req.onload = function()
 
-        local arr = js.new(js.global.Uint32Array, req.response)
+        local arr = js.new(js.global.Uint8Array, req.response)
+        local unit_len = string.packsize(tobito_ai.pack_fmt)
 
-        for i = 0, arr.length - 1, 4 do
-            local state, agr, bal, pru = arr[i], arr[i+1], arr[i+2], arr[i+3]
+        local index = 0
+        local tmp = {}
+        while index <= arr.length - 1 do
 
-            ai_data.aggressive[state] = agr
-            ai_data.balanced[state] = bal
-            ai_data.prudent[state] = pru
+            for i = 1, unit_len do
+                tmp[i] = arr[index + i - 1]
+            end
+
+            local str = string.char(table.unpack(tmp))
+
+            local state, win, top, bottom = string.unpack(tobito_ai.pack_fmt, str)
+
+            ai_data.win[state] = win
+            ai_data.top[state] = top
+            ai_data.bottom[state] = bottom
+
+            index = index + unit_len
         end
 
         local loadingScreen = js.global.document:getElementById "loadingScreen"
@@ -157,19 +171,25 @@ local function try_ai_move()
         return
     end
 
-    local array
+    local state_int = state_to_int()
+    local agg, bal, pru = tobito_ai.decide_state(
+        state_int,
+        ai_data.win,
+        ai_data.top,
+        ai_data.bottom
+    )
+
+    local ai_pick
     if ai == "Aggressive AI" then
-        array = ai_data.aggressive
+        ai_pick = agg
     elseif ai == "Balanced AI" then
-        array = ai_data.balanced
+        ai_pick = bal
     elseif ai == "Prudent AI" then
-        array = ai_data.prudent
+        ai_pick = pru
     else
         error "Bad AI button"
     end
 
-    local state_int = state_to_int()
-    local ai_pick = array[state_int]
     local ai_move
 
     for _,move in ipairs(context.next_moves) do

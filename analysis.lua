@@ -229,10 +229,10 @@ local function compute_sure_wins()
 	return wins	
 end
 
-local pack_fmt = "LbHH"
 
 local function save_all_data()
 	
+	local pack_fmt = require("ai").pack_fmt
 	local graph = require "graph"
 	local top, bottom = compute_heatmap()
 	local wins = compute_sure_wins()

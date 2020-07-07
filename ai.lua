@@ -1,12 +1,10 @@
 local tobito = require "tobito"
-local graph = require "graph"
 
 local pack_fmt = "LbHH"
-local top, bottom, win
 
 local function load_all_data(data_str)
 
-	top, bottom, win = {},{},{}
+	local top, bottom, win = {},{},{}
 	local index = 1
 
 	while index < #data_str do
@@ -20,7 +18,7 @@ local function load_all_data(data_str)
 		index = next_index
 	end
 	
-	print("Loaded data")
+	return win, top, bottom
 end
 
 local function max_for(values, func)
@@ -40,17 +38,16 @@ local function max_for(values, func)
 	return best
 end
 
-local function decide_state(state)
+local function decide_state(int, win, top, bottom)
 
-	local player = (state >> 24) & 0x3
+	local state = tobito.int_to_state(int)
+	local player = state.next_player
 	local m = (player == tobito.Top) and 1 or -1
-
-	local children = graph[state].children
 
 	local win_value = nil
 	local acceptable_children = {}
 
-	for _,child in ipairs(children) do
+	for move,child in tobito.valid_moves(state) do
 
 		if not win[child]then
 			print(tobito.draw_state(child))
@@ -71,45 +68,8 @@ local function decide_state(state)
 	return aggressive, balanced, prudent
 end
 
-local function debug_state(state)
-
-	print(state)
-	print(tobito.draw_state(state))
-
-	local agr, bal, pru = decide_state(state)
-	print(win[state], top[state], bottom[state], top[state] - bottom[state])
-
-	print ""
-	print("Aggressive:", agr)
-	print(tobito.draw_state(agr))
-	print(win[agr], top[agr], bottom[agr], top[agr] - bottom[agr])
-
-	print ""
-	print("Balanced:", bal)
-	print(tobito.draw_state(bal))
-	print(win[bal], top[bal], bottom[bal], top[bal] - bottom[bal])
-
-	print ""
-	print("Prudent:", pru)
-	print(tobito.draw_state(pru))
-	print(win[pru], top[pru], bottom[pru], top[pru] - bottom[pru])
-
-end
-
-local ai_fmt = "LLLL"
-
-local function decide_all()
-
-	load_all_data(io.open("data.dat", "rb"):read("a"))
-	local out = io.open("ai.dat", "wb")
-
-	for state,_ in pairs(graph) do
-
-		local a,b,p = decide_state(state)
-		out:write(string.pack(ai_fmt, state, a or 0, b or 0, p or 0))
-	end
-
-	out:close()
-end
-
-decide_all()
+return
+{
+	pack_fmt = pack_fmt,
+	decide_state = decide_state
+}
