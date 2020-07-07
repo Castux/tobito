@@ -20,7 +20,6 @@ local function start_state()
 	end
 
 	s.next_player = Top
-	s.start = true
 
 	return s
 end
@@ -43,7 +42,6 @@ local function state_to_int(s)
 	end
 
 	i = i | (s.next_player << 24)
-	i = i | ((s.start and 1 or 0) << 26)
 
 	return i
 end
@@ -62,7 +60,6 @@ local function int_to_state(int, s)
 	end
 
 	s.next_player = (int >> 24) & 0x3
-	s.start = (int >> 26) == 1
 
 	return s
 end
@@ -84,18 +81,12 @@ local function draw_state(s)
 			table.insert(res, "\n")
 		end
 	end
-	table.insert(res, "Next: " .. (s.next_player == Top and "Top" or "Bottom") .. (s.start and "\tstart" or ""))
+	table.insert(res, "Next: " .. (s.next_player == Top and "Top" or "Bottom"))
 
 	return table.concat(res)
 end
 
 local function state_winner(s)
-
-	if s.start then
-		return nil
-	end
-
-	-- Invasion
 
 	if s[0] == Bottom and s[1] == Bottom and s[2] == Bottom then
 		return Bottom
@@ -256,12 +247,12 @@ local function apply_move(s, m)
 	end
 
 	s.next_player = s.next_player == Top and Bottom or Top
-	s.start = false
 end
 
-local function valid_moves(s)
+local function valid_moves(s, exclude)
 	return coroutine.wrap(function()
 
+			local exclude = exclude or {}
 			local int = state_to_int(s)
 			local player = s.next_player
 
@@ -276,8 +267,10 @@ local function valid_moves(s)
 					-- Try applying move to check for passivity
 
 					apply_move(s, move)
-					if not home_row_full(s, player) then
-						coroutine.yield(move)
+					local child_int = state_to_int(s)
+					
+					if not exclude[child_int] and not home_row_full(s, player) then
+						coroutine.yield(move, child_int)
 					end
 
 					int_to_state(int, s)

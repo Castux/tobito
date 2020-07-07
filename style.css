@@ -22,7 +22,7 @@ body
     margin: auto;
 }
 
-.starterButton, .aiSelectorButton, #resetButton
+.starterButton, .aiSelectorButton, .footerButton
 {
     border: 5px solid #0A0B4C;
     border-radius: 20px;
@@ -272,12 +272,12 @@ body
 
 #footerText
 {
-    height: 86px;
-    line-height: 86px;
     margin-left: 10px;
+    display: flex;
+    align-items: center;
 }
 
-#resetButton
+.footerButton
 {
     bottom: 0px;
     right: 0px;
@@ -285,4 +285,5 @@ body
     height: 36px;
     line-height: 42px;
     font-size: 20px;
+    white-space: nowrap;
 }

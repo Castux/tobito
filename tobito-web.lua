@@ -1,5 +1,7 @@
 local js = require "js"
 local tobito = require "tobito"
+local tobito_ai = require "ai"
+
 
 local context
 local ai_data
@@ -57,7 +59,6 @@ local function state_to_int()
     end
 
     s.next_player = context.next_player
-    s.start = context.start
 
     return tobito.state_to_int(s)
 end
@@ -112,26 +113,25 @@ end
 local function load_ai_data()
 
     context.ai = {[tobito.Top] = "Human", [tobito.Bottom] = "Human"}
-    ai_data =
-    {
-        aggressive = {},
-        balanced = {},
-        prudent = {}
-    }
+    ai_data = {}
 
     local req = js.new(js.global.XMLHttpRequest)
-    req:open('GET', "ai.dat")
+    req:open('GET', "data.dat")
     req.responseType = "arraybuffer"
     req.onload = function()
 
-        local arr = js.new(js.global.Uint32Array, req.response)
+        local arr = js.new(js.global.Int32Array, req.response)
 
-        for i = 0, arr.length - 1, 4 do
-            local state, agr, bal, pru = arr[i], arr[i+1], arr[i+2], arr[i+3]
+        for i = 0, arr.length - 1 do
+            local int = arr[i]
 
-            ai_data.aggressive[state] = agr
-            ai_data.balanced[state] = bal
-            ai_data.prudent[state] = pru
+            local win = int >> 30
+	        local state = int & 0x3fffffff
+
+            ai_data[state] =
+                (win == tobito.Top) and 1
+                or (win == tobito.Bottom) and -1
+                or 0
         end
 
         local loadingScreen = js.global.document:getElementById "loadingScreen"
@@ -158,19 +158,32 @@ local function try_ai_move()
         return
     end
 
-    local array
+    local exclude
+    if not context.repetitions then
+        exclude = context.positions_played
+    end
+
+    local state_int = state_to_int()
+
+    local strategy
     if ai == "Aggressive AI" then
-        array = ai_data.aggressive
+        strategy = "aggressive"
     elseif ai == "Balanced AI" then
-        array = ai_data.balanced
+        strategy = "balanced"
     elseif ai == "Prudent AI" then
-        array = ai_data.prudent
+        strategy = "prudent"
     else
         error "Bad AI button"
     end
 
-    local state_int = state_to_int()
-    local ai_pick = array[state_int]
+    local ai_picks = tobito_ai.decide_state(state_int, ai_data, strategy, exclude)
+
+    if #ai_picks == 0 then
+        return
+    end
+
+    local ai_pick = ai_picks[math.random(#ai_picks)]
+
     local ai_move
 
     for _,move in ipairs(context.next_moves) do
@@ -193,11 +206,17 @@ end
 local function prepare_next_moves()
 
     local int = state_to_int()
+    context.positions_played[int] = true
+
     local s = tobito.int_to_state(int)
 
+    local exclude
+    if not context.repetitions then
+        exclude = context.positions_played
+    end
     context.next_moves = {}
 
-    for m in tobito.valid_moves(s) do
+    for m in tobito.valid_moves(s, exclude) do
         table.insert(context.next_moves, m)
     end
 
@@ -229,7 +248,6 @@ end_of_move_admin = function()
     context.relocate_destinations = {}
 
     context.next_player = context.next_player == tobito.Top and tobito.Bottom or tobito.Top
-    context.start = false
 
     js.global:setTimeout(function()
         prepare_next_moves()
@@ -330,7 +348,8 @@ local function on_start_button_clicked(self, e)
         context.next_player = tobito.Bottom
     end
 
-    context.start = true
+    context.positions_played = {}
+    context.positions_played[state_to_int()] = true
 
     local overlay = js.global.document:getElementById "startSelector"
     overlay.style.display = "none"
@@ -375,11 +394,25 @@ local function reset()
 
     context.next_player = nil
     context.next_moves = {}
+    context.positions_played = {}
 
     local overlay = js.global.document:getElementById "startSelector"
     overlay.style:removeProperty "display"
 
     overlay.parentElement:appendChild(overlay)
+
+end
+
+local function toggle_repetitions()
+
+    local rep_button = js.global.document:getElementById "repButton"
+
+    context.repetitions = not context.repetitions
+    if context.repetitions then
+        rep_button.innerHTML = "Repetitions ok"
+    else
+        rep_button.innerHTML = "No repetitions"
+    end
 
 end
 
@@ -418,13 +451,18 @@ local function setup()
     local reset_button = js.global.document:getElementById "resetButton"
     reset_button:addEventListener("click", reset)
 
+    local rep_button = js.global.document:getElementById "repButton"
+    rep_button:addEventListener("click", toggle_repetitions)
+
     context =
     {
         pawns = pawns,
-        triggers = triggers
+        triggers = triggers,
+        repetitions = false
     }
 
     load_ai_data()
+    math.randomseed(os.time())
 end
 
 setup()

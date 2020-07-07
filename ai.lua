@@ -1,115 +1,93 @@
 local tobito = require "tobito"
-local graph = require "graph"
 
-local pack_fmt = "LbHH"
-local top, bottom, win
+local pack_fmt = "<L"
 
 local function load_all_data(data_str)
 
-	top, bottom, win = {},{},{}
+	local win = {}
 	local index = 1
 
 	while index < #data_str do
 
-		local state, w, t, b, next_index = string.unpack(pack_fmt, data_str, index)
+		local int, next_index = string.unpack(pack_fmt, data_str, index)
+		
+		local w = int >> 30
+		local state = int & 0x3fffffff
 
-		win[state] = w
-		top[state] = t
-		bottom[state] = b
+		win[state] = (w == tobito.Top) and 1 or (w == tobito.Bottom) and -1 or 0
 
 		index = next_index
 	end
 	
-	print("Loaded data")
+	return win
 end
 
-local function max_for(values, func)
+local function max_for(elements, func)
 
 	local max = nil
-	local best = nil
+	local best = {}
 
-	for _,v in ipairs(values) do
+	for _,elem in ipairs(elements) do
 
-		local value = func(v)
-		if not best or value > max then
-			best = v
+		local value = func(elem)
+		if #best == 0 or value > max then
+			best = {elem}
 			max = value
+		elseif value == max then
+			table.insert(best, elem)
 		end
 	end
 
 	return best
 end
 
-local function decide_state(state)
+local function state_score(int, player)
+	
+	local s = tobito.int_to_state(int)
+	
+	local sum = 0
+	for cell = 0,tobito.MaxCell do
+		if s[cell] == player then
+			local row = cell // 3
+			if player == tobito.Top then
+				sum = sum + row
+			else
+				sum = sum + (4 - row)
+			end
+		end
+	end
+	
+	return sum
+end
 
-	local player = (state >> 24) & 0x3
+local function decide_state(int, win, strategy, exclude)
+
+	local state = tobito.int_to_state(int)
+	local player = state.next_player
+	local other = player == tobito.Top and tobito.Bottom or tobito.Top
 	local m = (player == tobito.Top) and 1 or -1
-
-	local children = graph[state].children
-
-	local win_value = nil
-	local acceptable_children = {}
-
-	for _,child in ipairs(children) do
-
-		if not win[child]then
-			print(tobito.draw_state(child))
-		end
-		local child_value = m * win[child]
-		if not win_value or child_value > win_value then
-			win_value = child_value
-			acceptable_children = {child}
-		elseif child_value == win_value then
-			table.insert(acceptable_children, child)
-		end
+	
+	local funcs = {}
+	funcs.aggressive = function(s)
+		return 1000 * m * win[s] + 10 * state_score(s, player) - 1 * state_score(s, other)
+	end
+	funcs.balanced = function(s)
+		return 1000 * m * win[s] + 10 * state_score(s, player) - 10 * state_score(s, other)
+	end
+	funcs.prudent = function(s)
+		return 1000 * m * win[s] + 1 * state_score(s, player) - 10 * state_score(s, other)
 	end
 
-	local aggressive = max_for(acceptable_children, function(s) return m*top[s] end)
-	local balanced = max_for(acceptable_children, function(s) return m*(top[s]-bottom[s]) end)
-	local prudent = max_for(acceptable_children, function(s) return -m*bottom[s] end)
-
-	return aggressive, balanced, prudent
-end
-
-local function debug_state(state)
-
-	print(state)
-	print(tobito.draw_state(state))
-
-	local agr, bal, pru = decide_state(state)
-	print(win[state], top[state], bottom[state], top[state] - bottom[state])
-
-	print ""
-	print("Aggressive:", agr)
-	print(tobito.draw_state(agr))
-	print(win[agr], top[agr], bottom[agr], top[agr] - bottom[agr])
-
-	print ""
-	print("Balanced:", bal)
-	print(tobito.draw_state(bal))
-	print(win[bal], top[bal], bottom[bal], top[bal] - bottom[bal])
-
-	print ""
-	print("Prudent:", pru)
-	print(tobito.draw_state(pru))
-	print(win[pru], top[pru], bottom[pru], top[pru] - bottom[pru])
-
-end
-
-local ai_fmt = "LLLL"
-
-local function decide_all()
-
-	load_all_data(io.open("data.dat", "rb"):read("a"))
-	local out = io.open("ai.dat", "wb")
-
-	for state,_ in pairs(graph) do
-
-		local a,b,p = decide_state(state)
-		out:write(string.pack(ai_fmt, state, a or 0, b or 0, p or 0))
+	local children = {}
+	for move,child in tobito.valid_moves(state, exclude) do
+		table.insert(children, child)
 	end
 
-	out:close()
+	return max_for(children, funcs[strategy])
 end
 
-decide_all()
+return
+{
+	pack_fmt = pack_fmt,
+	decide_state = decide_state
+}
