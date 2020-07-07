@@ -22,17 +22,19 @@ local function load_all_data(data_str)
 	return win
 end
 
-local function max_for(values, func)
+local function max_for(elements, func)
 
 	local max = nil
-	local best = nil
+	local best = {}
 
-	for _,v in ipairs(values) do
+	for _,elem in ipairs(elements) do
 
-		local value = func(v)
-		if not best or value > max then
-			best = v
+		local value = func(elem)
+		if #best == 0 or value > max then
+			best = {elem}
 			max = value
+		elseif value == max then
+			table.insert(best, elem)
 		end
 	end
 

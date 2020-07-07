@@ -176,7 +176,13 @@ local function try_ai_move()
         error "Bad AI button"
     end
 
-    local ai_pick = tobito_ai.decide_state(state_int, ai_data, strategy, exclude)
+    local ai_picks = tobito_ai.decide_state(state_int, ai_data, strategy, exclude)
+
+    if #ai_picks == 0 then
+        return
+    end
+
+    local ai_pick = ai_picks[math.random(#ai_picks)]
 
     local ai_move
 
@@ -456,6 +462,7 @@ local function setup()
     }
 
     load_ai_data()
+    math.randomseed(os.time())
 end
 
 setup()
