@@ -164,18 +164,19 @@ local function try_ai_move()
     end
 
     local state_int = state_to_int()
-    local agg, bal, pru = tobito_ai.decide_state(state_int, ai_data, exclude)
 
-    local ai_pick
+    local strategy
     if ai == "Aggressive AI" then
-        ai_pick = agg
+        strategy = "aggressive"
     elseif ai == "Balanced AI" then
-        ai_pick = bal
+        strategy = "balanced"
     elseif ai == "Prudent AI" then
-        ai_pick = pru
+        strategy = "prudent"
     else
         error "Bad AI button"
     end
+
+    local ai_pick = tobito_ai.decide_state(state_int, ai_data, strategy, exclude)
 
     local ai_move
 

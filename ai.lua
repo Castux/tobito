@@ -58,30 +58,30 @@ local function state_score(int, player)
 	return sum
 end
 
-local function decide_state(int, win, exclude)
+local function decide_state(int, win, strategy, exclude)
 
 	local state = tobito.int_to_state(int)
 	local player = state.next_player
 	local other = player == tobito.Top and tobito.Bottom or tobito.Top
 	local m = (player == tobito.Top) and 1 or -1
-
-	local acceptable_children = {}
-
-	for move,child in tobito.valid_moves(state, exclude) do
-		table.insert(acceptable_children, child)
+	
+	local funcs = {}
+	funcs.aggressive = function(s)
+		return 1000 * m * win[s] + 10 * state_score(s, player) - 1 * state_score(s, other)
+	end
+	funcs.balanced = function(s)
+		return 1000 * m * win[s] + 10 * state_score(s, player) - 10 * state_score(s, other)
+	end
+	funcs.prudent = function(s)
+		return 1000 * m * win[s] + 1 * state_score(s, player) - 10 * state_score(s, other)
 	end
 
-	local aggressive = max_for(acceptable_children, function(s)
-		return 1000 * m * win[s] + 10 * state_score(s, player) - 1 * state_score(s, other)
-	end)
-	local balanced = max_for(acceptable_children, function(s)
-		return 1000 * m * win[s] + 10 * state_score(s, player) - 10 * state_score(s, other)
-	end)
-	local prudent = max_for(acceptable_children, function(s)
-		return 1000 * m * win[s] + 1 * state_score(s, player) - 10 * state_score(s, other)
-	end)
+	local children = {}
+	for move,child in tobito.valid_moves(state, exclude) do
+		table.insert(children, child)
+	end
 
-	return aggressive, balanced, prudent
+	return max_for(children, funcs[strategy])
 end
 
 return
