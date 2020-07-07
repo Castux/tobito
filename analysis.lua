@@ -62,112 +62,6 @@ local function save_graph(graph)
 	fp:close()
 end
 
-local function distances_from_state(s_int)
-
-	local Graph = require "graph"
-
-	local distances = {}
-	local to_treat = {}
-	local next_queue = {}
-	local treated = {}
-
-	distances[s_int] = 0
-	table.insert(to_treat, s_int)
-
-	while #to_treat > 0 do
-
-		local did_one = false
-
-		for _,int in ipairs(to_treat) do
-			for _,parent in ipairs(Graph[int].parents) do
-				if not treated[parent] then
-					distances[parent] = math.min(distances[parent] or math.maxinteger, 1 + distances[int])
-					next_queue[parent] = true
-				end
-			end
-
-			treated[int] = true
-		end
-
-		to_treat = {}
-		for k in pairs(next_queue) do
-			table.insert(to_treat, k)
-		end
-		next_queue = {}
-
-	end
-
-	return distances
-end
-
-local function compute_all_win_state_distances()
-
-	local Graph = require "graph"
-	local tmp_state = {}
-
-	local count = 0
-
-	for int,entry in pairs(Graph) do
-
-		tobito.int_to_state(int, tmp_state)
-		local w = tobito.state_winner(tmp_state)
-
-		if w then
-			count = count + 1
-			print(count)
-
-			local fp = io.open("dist/" .. int .. ".lua", "w")
-			fp:write "return {\n"
-
-			for state,distance in pairs(distances_from_state(int)) do
-				fp:write(string.format("[%d] = %d,\n", state, distance))
-			end
-
-			fp:write "}"
-			fp:close()
-		end
-	end
-
-end
-
-local function compute_heatmap()
-
-	local Graph = require "graph"
-	local tmp_state = {}
-
-	local heat_top = {}
-	local heat_bottom = {}
-
-	local count = 0
-
-	for int,entry in pairs(Graph) do
-
-		tobito.int_to_state(int, tmp_state)
-		local w = tobito.state_winner(tmp_state)
-
-		if w then
-			
-			count = count + 1
-			print(count)
-			
-			local heat = (w == tobito.Top) and heat_top or heat_bottom
-
-			local distances = dofile("dist/" .. int .. ".lua")
-
-			for s,d in pairs(distances) do
-
-				if d == 0 then
-					heat[s] = 65
-				else
-					heat[s] = (heat[s] or 0) + 1 / (d*d)
-				end
-			end
-		end
-	end
-
-	return heat_top, heat_bottom
-end
-
 local function compute_sure_wins()
 	
 	local Graph = require "graph"
@@ -234,19 +128,16 @@ local function save_all_data()
 	
 	local pack_fmt = require("ai").pack_fmt
 	local graph = require "graph"
-	local top, bottom = compute_heatmap()
 	local wins = compute_sure_wins()
 
 	local fp = io.open("data.dat", "wb")
 	
 	local count = 0
-	for k,_ in pairs(graph) do
+	for state in pairs(graph) do
 		
-		local t = math.floor((top[k] or 0) * 1000)
-		local b = math.floor((bottom[k] or 0) * 1000)
-		local w = wins[k] or tobito.Empty
-
-		local packed = string.pack(pack_fmt, k, w, t, b)
+		local w = wins[state] or tobito.Empty
+		local int = (w << 30) | state
+		local packed = string.pack(pack_fmt, int)
 		fp:write(packed)
 		
 		count = count + 1

@@ -113,39 +113,30 @@ end
 local function load_ai_data()
 
     context.ai = {[tobito.Top] = "Human", [tobito.Bottom] = "Human"}
-    ai_data =
-    {
-        win = {},
-        top = {},
-        bottom = {}
-    }
+    ai_data = {}
 
     local req = js.new(js.global.XMLHttpRequest)
     req:open('GET', "data.dat")
     req.responseType = "arraybuffer"
     req.onload = function()
 
-        local arr = js.new(js.global.Uint32Array, req.response)
-        local unit_len = string.packsize(tobito_ai.pack_fmt)
+        local arr = js.new(js.global.Int32Array, req.response)
 
-        for i = 0, arr.length - 1, 4 do
-            local state = arr[i]
-            local win = arr[i+1]
-            local top = arr[i+2]
-            local bottom = arr[i+3]
+        for i = 0, arr.length - 1 do
+            local int = arr[i]
 
-            ai_data.win[state] =
+            local win = int >> 30
+	        local state = int & 0x3fffffff
+
+            ai_data[state] =
                 (win == tobito.Top) and 1
                 or (win == tobito.Bottom) and -1
                 or 0
-            ai_data.top[state] = top
-            ai_data.bottom[state] = bottom
         end
 
         local loadingScreen = js.global.document:getElementById "loadingScreen"
         loadingScreen.style.display = "none";
     end
-
 
     req:send()
 end
@@ -168,12 +159,7 @@ local function try_ai_move()
     end
 
     local state_int = state_to_int()
-    local agg, bal, pru = tobito_ai.decide_state(
-        state_int,
-        ai_data.win,
-        ai_data.top,
-        ai_data.bottom
-    )
+    local agg, bal, pru = tobito_ai.decide_state(state_int, ai_data)
 
     local ai_pick
     if ai == "Aggressive AI" then

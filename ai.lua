@@ -1,24 +1,25 @@
 local tobito = require "tobito"
 
-local pack_fmt = "LLLL"
+local pack_fmt = "<L"
 
 local function load_all_data(data_str)
 
-	local top, bottom, win = {},{},{}
+	local win = {}
 	local index = 1
 
 	while index < #data_str do
 
-		local state, w, t, b, next_index = string.unpack(pack_fmt, data_str, index)
+		local int, next_index = string.unpack(pack_fmt, data_str, index)
+		
+		local w = int >> 30
+		local state = int & 0x3fffffff
 
 		win[state] = (w == tobito.Top) and 1 or (w == tobito.Bottom) and -1 or 0
-		top[state] = t
-		bottom[state] = b
 
 		index = next_index
 	end
 	
-	return win, top, bottom
+	return win
 end
 
 local function max_for(values, func)
@@ -57,14 +58,13 @@ local function state_score(int, player)
 	return sum
 end
 
-local function decide_state(int, win, top, bottom)
+local function decide_state(int, win)
 
 	local state = tobito.int_to_state(int)
 	local player = state.next_player
 	local other = player == tobito.Top and tobito.Bottom or tobito.Top
 	local m = (player == tobito.Top) and 1 or -1
 
-	local win_value = nil
 	local acceptable_children = {}
 
 	for move,child in tobito.valid_moves(state) do
