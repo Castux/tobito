@@ -48,19 +48,12 @@ local function decide_state(int, win, top, bottom)
 	local acceptable_children = {}
 
 	for move,child in tobito.valid_moves(state) do
-
-		local child_value = m * win[child]
-		if not win_value or child_value > win_value then
-			win_value = child_value
-			acceptable_children = {child}
-		elseif child_value == win_value then
-			table.insert(acceptable_children, child)
-		end
+		table.insert(acceptable_children, child)
 	end
 
-	local aggressive = max_for(acceptable_children, function(s) return m*top[s] end)
-	local balanced = max_for(acceptable_children, function(s) return m*(top[s]-bottom[s]) end)
-	local prudent = max_for(acceptable_children, function(s) return -m*bottom[s] end)
+	local aggressive = max_for(acceptable_children, function(s) return m * (1e6 * win[s] + top[s]) end)
+	local balanced = max_for(acceptable_children, function(s) return m * (1e6 * win[s] + top[s] - bottom[s]) end)
+	local prudent = max_for(acceptable_children, function(s) return m * (1e6 * win[s] - bottom[s]) end)
 
 	return aggressive, balanced, prudent
 end
