@@ -70,7 +70,7 @@ local function int_to_state(int, s)
 			s[cell] = Top
 		elseif i < 6 then
 			s[cell] = Bottom
-		elseif cell >= 3 and cell <= 11 then
+		elseif cell ~= 0 then
 			s[cell] = Neutral
 		end
 	end

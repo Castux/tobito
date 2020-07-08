@@ -154,12 +154,15 @@ local function save_all_data()
 	local count = 0
 	for state in pairs(graph) do
 		
-		local w = wins[state] or tobito.Empty
-		local int = (w << 30) | state
-		local packed = string.pack(pack_fmt, int)
-		fp:write(packed)
+		local w = wins[state]
 		
-		count = count + 1
+		if w then 
+			local int = (w << 30) | state
+			local packed = string.pack(pack_fmt, int)
+			fp:write(packed)
+			
+			count = count + 1
+		end
 	end
 
 	fp:close()

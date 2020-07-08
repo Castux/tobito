@@ -69,13 +69,13 @@ local function decide_state(int, win, strategy, exclude)
 	
 	local funcs = {}
 	funcs.aggressive = function(s)
-		return 1000 * m * win[s] + 10 * state_score(s, player) - 1 * state_score(s, other)
+		return 1000 * m * (win[s] or 0) + 10 * state_score(s, player) - 1 * state_score(s, other)
 	end
 	funcs.balanced = function(s)
-		return 1000 * m * win[s] + 10 * state_score(s, player) - 10 * state_score(s, other)
+		return 1000 * m * (win[s] or 0) + 10 * state_score(s, player) - 10 * state_score(s, other)
 	end
 	funcs.prudent = function(s)
-		return 1000 * m * win[s] + 1 * state_score(s, player) - 10 * state_score(s, other)
+		return 1000 * m * (win[s] or 0) + 1 * state_score(s, player) - 10 * state_score(s, other)
 	end
 
 	local children = {}
