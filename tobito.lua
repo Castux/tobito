@@ -66,10 +66,13 @@ local function int_to_state(int, s)
 
 	for i = 0,6 do
 		local cell = (int >> (i * 4)) & 0xf
-		s[cell] =
-		(i < 3) and Top or
-		(i < 6) and Bottom or
-		Neutral
+		if i < 3 then
+			s[cell] = Top
+		elseif i < 6 then
+			s[cell] = Bottom
+		elseif cell >= 3 and cell <= 11 then
+			s[cell] = Neutral
+		end
 	end
 
 	s.next_player = (int >> 28) & 0x3

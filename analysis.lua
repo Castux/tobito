@@ -49,21 +49,25 @@ local function compute_graph()
 		next_queue = {}
 	end
 	
-	::done::
-	
 	print("Total", count)
 	return states
 end
 
 local function save_graph(graph)
-
+	
+	print "Writing graph.lua"
+	local count = 0
+	
 	local fp = io.open("graph.lua", "w")
 	fp:write "return {\n"
 	for k,v in pairs(graph) do
+		count = count + 1
 		fp:write(string.format("[%d] = { children_count = %d, %s },\n", k, v.children_count or 0, table.concat(v, ",")))
 	end
 	fp:write "}"
 	fp:close()
+	
+	print("Wrote", count)
 end
 
 local function compute_sure_wins()
@@ -86,18 +90,25 @@ local function compute_sure_wins()
 			wins[int] = w
 			table.insert(queue, int)
 		else
-			counts[int] = #Graph[int].children
+			counts[int] = Graph.children_count
 		end
 	end
 	
+	local c = 0
+	
 	while #queue > 0 do
-		print(#queue)
+		
 		for _,int in ipairs(queue) do
+			
+			c = c + 1
+			if c % 1000 == 0 then
+				print(c)
+			end
 			
 			tobito.int_to_state(int, tmp_state)
 			local player = tmp_state.next_player
 			
-			for _,parent in ipairs(Graph[int].parents) do
+			for _,parent in ipairs(Graph[int]) do
 				if counts[parent] then
 					
 					if wins[int] and wins[int] ~= player then
@@ -119,7 +130,7 @@ local function compute_sure_wins()
 				end
 			end
 		end
-		print("next", #next_queue)
+		
 		queue = next_queue
 		next_queue = {}
 	end
@@ -152,4 +163,4 @@ local function save_all_data()
 end
 
 save_graph(compute_graph())
---save_all_data()
+save_all_data()
