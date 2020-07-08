@@ -32,8 +32,10 @@ local function get_pawn_player(div)
 
     if div.classList:contains "top" then
         return tobito.Top
-    else
+    elseif div.classList:contains "bottom" then
         return tobito.Bottom
+    else
+        return tobito.Neutral
     end
 
 end
@@ -41,7 +43,11 @@ end
 local function set_pawn_cell(div, cell)
 
     local num = get_div_cell(div)
-    div.classList:replace("cell" .. num, "cell" .. cell)
+    if num then
+        div.classList:replace("cell" .. num, "cell" .. cell)
+    else
+        div.classList:add("cell" .. cell)
+    end
 end
 
 local function state_to_int()
@@ -52,10 +58,11 @@ local function state_to_int()
     end
 
     for _,div in ipairs(context.pawns) do
-        local player = div.classList:contains "top" and tobito.Top or tobito.Bottom
+        local player = get_pawn_player(div)
         local cell = get_div_cell(div)
-
-        s[cell] = player
+        if cell then
+            s[cell] = player
+        end
     end
 
     s.next_player = context.next_player
@@ -342,10 +349,27 @@ end
 
 local function on_start_button_clicked(self, e)
 
-    if self.id == "redStarts" then
+    if self.id:match "red" then
         context.next_player = tobito.Top
     else
         context.next_player = tobito.Bottom
+    end
+
+    local haneto = self.id:match "Haneto"
+    for _,div in ipairs(context.pawns) do
+        if div.classList:contains "neutral" then
+
+            set_pawn_cell(div, 7)
+
+            if haneto then
+                div.style.display = ""
+            else
+                div.style.display = "none";
+                div.classList:remove "cell7"
+            end
+
+            break
+        end
     end
 
     context.positions_played = {}
@@ -382,12 +406,16 @@ local function reset()
 
     for _,pawn in ipairs(context.pawns) do
 
-        if get_pawn_player(pawn) == tobito.Top then
+        local player = get_pawn_player(pawn)
+
+        if player == tobito.Top then
             set_pawn_cell(pawn, top_index)
             top_index = top_index + 1
-        else
+        elseif player == tobito.Bottom then
             set_pawn_cell(pawn, bottom_index)
             bottom_index = bottom_index + 1
+        else
+            pawn.style.display = "none"
         end
 
     end
