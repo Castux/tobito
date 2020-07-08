@@ -29,7 +29,7 @@ local function compute_graph()
 				
 				children_count = children_count + 1
 				
-				states[child] = (states[child] or {})
+				states[child] = states[child] or {}
 				table.insert(states[child], int)
 
 				next_queue[child] = true
