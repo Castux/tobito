@@ -9,9 +9,14 @@ local function compute_graph()
 	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Top)))
 	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Bottom)))
 
+	local count = 0
+
 	while #queue > 0 do
-		print (#queue)
 		for _,int in ipairs(queue) do
+			
+			if states[int] then
+				goto skip
+			end
 
 			local state = tobito.int_to_state(int)
 			local children = {}
@@ -21,15 +26,19 @@ local function compute_graph()
 				child = tobito.state_to_int(state)
 
 				table.insert(children, child)
-
-				if not states[child] then
-					next_queue[child] = true
-				end
-
+				next_queue[child] = true
+				
 				tobito.int_to_state(int, state)
 			end
 
 			states[int] = { children = children, parents = {} }
+			
+			count = count + 1
+			if count % 10000 == 0 then
+				print(count, string.format("%.2f%%", count / 200000 * 100))
+			end
+			
+			::skip::
 		end
 
 		queue = {}
@@ -44,6 +53,8 @@ local function compute_graph()
 			table.insert(states[child].parents, int)
 		end
 	end
+	
+	print("Graph computed", count)
 
 	return states
 end
@@ -84,7 +95,6 @@ local function compute_sure_wins()
 	end
 	
 	while #queue > 0 do
-		print(#queue)
 		for _,int in ipairs(queue) do
 			
 			tobito.int_to_state(int, tmp_state)
@@ -112,7 +122,7 @@ local function compute_sure_wins()
 				end
 			end
 		end
-		print("next", #next_queue)
+		
 		queue = next_queue
 		next_queue = {}
 	end
