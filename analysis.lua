@@ -8,6 +8,8 @@ local function compute_graph()
 
 	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Top)))
 	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Bottom)))
+	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Top, true)))
+	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Bottom, true)))
 
 	local count = 0
 
@@ -35,7 +37,7 @@ local function compute_graph()
 			
 			count = count + 1
 			if count % 10000 == 0 then
-				print(count, string.format("%.2f%%", count / 200000 * 100))
+				print(count, string.format("%.2f%%", count / 1212686 * 100))
 			end
 			
 			::skip::
