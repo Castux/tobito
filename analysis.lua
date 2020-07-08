@@ -8,42 +8,28 @@ local function compute_graph()
 
 	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Top)))
 	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Bottom)))
-	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Top, true)))
-	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Bottom, true)))
-	
-	local tmp_state = {}
-	local count = 0
 
 	while #queue > 0 do
-		
+		print (#queue)
 		for _,int in ipairs(queue) do
-			
-			if states[int] and states[int].children_count then
-				goto skip
+
+			local state = tobito.int_to_state(int)
+			local children = {}
+
+			for m in tobito.valid_moves(state) do
+				tobito.apply_move(m, state)
+				child = tobito.state_to_int(state)
+
+				table.insert(children, child)
+
+				if not states[child] then
+					next_queue[child] = true
+				end
+
+				tobito.int_to_state(int, state)
 			end
 
-			tobito.int_to_state(int, tmp_state)
-			local children_count = 0
-
-			for move,child in tobito.valid_moves(tmp_state) do
-				
-				children_count = children_count + 1
-				
-				states[child] = states[child] or {}
-				table.insert(states[child], int)
-
-				next_queue[child] = true
-			end
-
-			states[int] = states[int] or {}
-			states[int].children_count = children_count
-		
-			count = count + 1
-			if count % 10000 == 0 then
-				print(count, string.format("%.2f%%", count / 1824973 * 100))
-			end
-			
-			::skip::
+			states[int] = { children = children, parents = {} }
 		end
 
 		queue = {}
@@ -52,26 +38,25 @@ local function compute_graph()
 		end
 		next_queue = {}
 	end
-	
-	print("Total", count)
+
+	for int,entry in pairs(states) do
+		for _,child in ipairs(entry.children) do
+			table.insert(states[child].parents, int)
+		end
+	end
+
 	return states
 end
 
 local function save_graph(graph)
-	
-	print "Writing graph.lua"
-	local count = 0
-	
+
 	local fp = io.open("graph.lua", "w")
 	fp:write "return {\n"
 	for k,v in pairs(graph) do
-		count = count + 1
-		fp:write(string.format("[%d] = { children_count = %d, %s },\n", k, v.children_count or 0, table.concat(v, ",")))
+		fp:write(string.format("[%d] = { children = {%s}, parents = {%s} },\n", k, table.concat(v.children, ","), table.concat(v.parents, ",")))
 	end
 	fp:write "}"
 	fp:close()
-	
-	print("Wrote", count)
 end
 
 local function compute_sure_wins()
@@ -94,25 +79,18 @@ local function compute_sure_wins()
 			wins[int] = w
 			table.insert(queue, int)
 		else
-			counts[int] = Graph.children_count
+			counts[int] = #Graph[int].children
 		end
 	end
 	
-	local c = 0
-	
 	while #queue > 0 do
-		
+		print(#queue)
 		for _,int in ipairs(queue) do
-			
-			c = c + 1
-			if c % 1000 == 0 then
-				print(c)
-			end
 			
 			tobito.int_to_state(int, tmp_state)
 			local player = tmp_state.next_player
 			
-			for _,parent in ipairs(Graph[int]) do
+			for _,parent in ipairs(Graph[int].parents) do
 				if counts[parent] then
 					
 					if wins[int] and wins[int] ~= player then
@@ -134,7 +112,7 @@ local function compute_sure_wins()
 				end
 			end
 		end
-		
+		print("next", #next_queue)
 		queue = next_queue
 		next_queue = {}
 	end
@@ -155,8 +133,7 @@ local function save_all_data()
 	for state in pairs(graph) do
 		
 		local w = wins[state]
-		
-		if w then 
+		if w then
 			local int = (w << 30) | state
 			local packed = string.pack(pack_fmt, int)
 			fp:write(packed)
