@@ -18,9 +18,8 @@ local function compute_graph()
 		
 		for _,int in ipairs(queue) do
 			
-			count = count + 1
-			if count % 10000 == 0 then
-				print(count, string.format("%.2f%%", count / 1824973 * 100))
+			if states[int] and states[int].children_count then
+				goto skip
 			end
 
 			tobito.int_to_state(int, tmp_state)
@@ -33,13 +32,18 @@ local function compute_graph()
 				states[child] = (states[child] or {})
 				table.insert(states[child], int)
 
-				if not states[child].children_count then
-					next_queue[child] = true
-				end
+				next_queue[child] = true
 			end
 
 			states[int] = states[int] or {}
 			states[int].children_count = children_count
+		
+			count = count + 1
+			if count % 10000 == 0 then
+				print(count, string.format("%.2f%%", count / 1824973 * 100))
+			end
+			
+			::skip::
 		end
 
 		queue = {}
