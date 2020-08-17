@@ -1,0 +1,307 @@
+@import url('https://fonts.googleapis.com/css2?family=Calligraffitti&display=swap');
+
+body
+{
+    font-family: 'Calligraffitti', cursive;
+    color: #0A0B4C;
+    margin: 0;
+}
+
+#wholePage
+{
+    width: 680px;
+    height: 90vh;
+    display: flex;
+    margin: 0 auto;
+
+    position: relative;
+}
+
+#container
+{
+    margin: auto;
+}
+
+.starterButton, .aiSelectorButton, .footerButton
+{
+    border: 5px solid #0A0B4C;
+    border-radius: 20px;
+    user-select: none;
+    cursor: pointer;
+    background: white;
+    padding: 10px;
+    margin: 10px;
+
+    font-weight: bold;
+    text-align: center;
+}
+
+.board
+{
+    position: relative;
+
+    width: 680px;
+    height: 680px;
+    background: url(Tobito.jpg);
+}
+
+.pawn
+{
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    border: 5px solid;
+    transform: scale(0.7);
+
+    transition: top 0.75s, left 0.75s;
+}
+
+@keyframes wobble
+{
+  from { transform: scale(0.7); }
+  to { transform: scale(0.75); }
+}
+
+.selected
+{
+    animation-name: wobble;
+    animation-duration: 0.3s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+.toRelocate
+{
+    border-color: yellow !important;
+}
+
+.bottom
+{
+    background: #34AACE;
+    border-color: black;
+}
+
+.top
+{
+    background: #D80100;
+    border-color: black;
+}
+
+.neutral
+{
+    background: white;
+}
+
+.cell0
+{
+    top: 37px;
+    left: 158px;
+}
+
+.cell1
+{
+    top: 37px;
+    left: 279px;
+}
+
+.cell2
+{
+    top: 37px;
+    left: 401px;
+}
+
+.cell3
+{
+    top: 158px;
+    left: 158px;
+}
+
+.cell4
+{
+    top: 158px;
+    left: 279px;
+}
+
+.cell5
+{
+    top: 158px;
+    left: 401px;
+}
+
+.cell6
+{
+    top: 279px;
+    left: 158px;
+}
+
+.cell7
+{
+    top: 279px;
+    left: 279px;
+}
+
+.cell8
+{
+    top: 279px;
+    left: 401px;
+}
+
+.cell9
+{
+    top: 401px;
+    left: 158px;
+}
+
+.cell10
+{
+    top: 401px;
+    left: 279px;
+}
+
+.cell11
+{
+    top: 401px;
+    left: 401px;
+}
+
+.cell12
+{
+    top: 522px;
+    left: 158px;
+}
+
+.cell13
+{
+    top: 522px;
+    left: 279px;
+}
+
+.cell14
+{
+    top: 522px;
+    left: 401px;
+}
+
+.trigger
+{
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    background: rgba(0,0,0,0);
+}
+
+#startSelector
+{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgb(255, 255, 255, 0.9);
+}
+
+#loadingScreen
+{
+    position: absolute;
+    width: 680px;
+    height: 100%;
+    background: rgb(255, 255, 255, 0.9);
+}
+
+#loadingScreen p
+{
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 64px;
+    text-align: center;
+}
+
+
+.startButtons
+{
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    align-items: center;
+}
+
+.starterButton
+{
+    height: 60px;
+    font-size: 42px;
+    line-height: 70px;
+}
+
+.startTitle
+{
+    padding: 10px;
+    margin: 10px;
+    height: 60px;
+
+    font-weight: bold;
+    text-align: center;
+    font-size: 42px;
+    line-height: 70px;
+}
+
+.aiSelector
+{
+    position: relative;
+    width: 680px;
+    margin: 0 auto;
+
+    height: 100px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.aiSelectorButton
+{
+    font-size: 20px;
+    line-height: 42px;
+    height: 36px;
+}
+
+#topSelector > .aiSelected
+{
+    background: #D80100AA !important;
+}
+
+#bottomSelector > .aiSelected
+{
+    background: #34AACEAA !important;
+}
+
+#footer
+{
+    margin-top: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+}
+
+#footerText
+{
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.footerButton
+{
+    bottom: 0px;
+    right: 0px;
+
+    height: 36px;
+    line-height: 42px;
+    font-size: 20px;
+    white-space: nowrap;
+}
