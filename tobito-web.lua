@@ -87,6 +87,7 @@ local function on_pawn_clicked(self, e)
 
     if context.pending_relocations then
 
+        deselect()
         if self.classList:contains "toRelocate" then
             select(self)
         end
@@ -235,24 +236,22 @@ local function get_relocations(from, to)
     local res = {}
 
     local to_relocate = {}
-    local destinations = {}
 
     for _,m in ipairs(context.next_moves) do
         if m[1] == from and m[2] == to then
             for i = 3,#m,2 do
                 to_relocate[m[i]] = true
-                destinations[m[i+1]] = true
             end
         end
     end
 
-    return to_relocate, destinations
+    return to_relocate
 end
 
 end_of_move_admin = function()
     context.pending_relocations = false
     context.to_relocate = {}
-    context.relocate_destinations = {}
+    context.origin_cell = nil
 
     context.next_player = context.next_player == tobito.Top and tobito.Bottom or tobito.Top
 
@@ -267,17 +266,21 @@ local function make_move(pawn, dest)
 
     js.global:setTimeout(function()
 
-        local to_relocate,destinations = get_relocations(get_div_cell(pawn), dest)
+        local origin_cell = get_div_cell(pawn)
+        local to_relocate = get_relocations(origin_cell, dest)
 
         context.pending_relocations = false
 
         for cell,_ in pairs(to_relocate) do
             context.pending_relocations = true
-            context.to_relocate = to_relocate
-            context.relocate_destinations = destinations
 
             local p = get_pawn_at_cell(cell)
             p.classList:add "toRelocate"
+        end
+
+        if context.pending_relocations then
+            context.to_relocate = to_relocate
+            context.origin_cell = origin_cell
         end
 
         set_pawn_cell(pawn, dest)
@@ -291,6 +294,27 @@ local function make_move(pawn, dest)
 
 end
 
+local function is_valid_relocation(from, to)
+
+    if context.to_relocate[to] then
+        return false
+    end
+
+    if to == context.origin_cell then
+        return false
+    end
+
+    if get_pawn_at_cell(to) then
+        return false
+    end
+
+    local pawn_player = get_pawn_player(get_pawn_at_cell(from))
+    if pawn_player == tobito.Neutral then
+        return to > 2 and to < 12
+    else
+        return true
+    end
+end
 
 local function is_valid_move(from, to)
 
@@ -322,23 +346,27 @@ local function on_trigger_clicked(self, e)
     elseif context.selected and context.pending_relocations then
 
         local pawn = context.selected
+        local pawn_cell = get_div_cell(pawn)
 
-        if context.relocate_destinations[cell] then
-
-            context.to_relocate[get_div_cell(pawn)] = nil
-            context.relocate_destinations[cell] = nil
+        if is_valid_relocation(pawn_cell, cell) then
 
             pawn.parentElement:appendChild(pawn)
-
             js.global:setTimeout(function()
 
                 set_pawn_cell(pawn, cell)
                 pawn.classList:remove "toRelocate"
                 deselect()
 
-                if not next(context.to_relocate) then
-                    end_of_move_admin()
+                for _,pawn in pairs(context.pawns) do
+                    if pawn.classList:contains "toRelocate" then
+                        -- Relocations remaining
+                        return
+                    end
                 end
+
+                -- No relocations remaining
+                end_of_move_admin()
+
             end, 0.1)
 
         end
@@ -437,9 +465,9 @@ local function toggle_repetitions()
 
     context.repetitions = not context.repetitions
     if context.repetitions then
-        rep_button.innerHTML = "Repetitions ok"
+        rep_button.innerHTML = "AI repetitions ok"
     else
-        rep_button.innerHTML = "No repetitions"
+        rep_button.innerHTML = "No AI repetitions"
     end
 
 end
