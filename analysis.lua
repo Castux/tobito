@@ -6,15 +6,19 @@ local function compute_graph()
 	local queue = {}
 	local next_queue = {}
 
-	local ss = tobito.start_state()
-	ss.next_player = tobito.Top
-	table.insert(queue, tobito.state_to_int(ss))
-	ss.next_player = tobito.Bottom
-	table.insert(queue, tobito.state_to_int(ss))
+	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Top)))
+	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Bottom)))
+	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Top, true)))
+	table.insert(queue, tobito.state_to_int(tobito.start_state(tobito.Bottom, true)))
+
+	local count = 0
 
 	while #queue > 0 do
-		print (#queue)
 		for _,int in ipairs(queue) do
+			
+			if states[int] then
+				goto skip
+			end
 
 			local state = tobito.int_to_state(int)
 			local children = {}
@@ -24,15 +28,19 @@ local function compute_graph()
 				child = tobito.state_to_int(state)
 
 				table.insert(children, child)
-
-				if not states[child] then
-					next_queue[child] = true
-				end
-
+				next_queue[child] = true
+				
 				tobito.int_to_state(int, state)
 			end
 
 			states[int] = { children = children, parents = {} }
+			
+			count = count + 1
+			if count % 10000 == 0 then
+				print(count, string.format("%.2f%%", count / 1212686 * 100))
+			end
+			
+			::skip::
 		end
 
 		queue = {}
@@ -47,6 +55,8 @@ local function compute_graph()
 			table.insert(states[child].parents, int)
 		end
 	end
+	
+	print("Graph computed", count)
 
 	return states
 end
@@ -87,7 +97,6 @@ local function compute_sure_wins()
 	end
 	
 	while #queue > 0 do
-		print(#queue)
 		for _,int in ipairs(queue) do
 			
 			tobito.int_to_state(int, tmp_state)
@@ -115,7 +124,7 @@ local function compute_sure_wins()
 				end
 			end
 		end
-		print("next", #next_queue)
+		
 		queue = next_queue
 		next_queue = {}
 	end
@@ -135,12 +144,14 @@ local function save_all_data()
 	local count = 0
 	for state in pairs(graph) do
 		
-		local w = wins[state] or tobito.Empty
-		local int = (w << 30) | state
-		local packed = string.pack(pack_fmt, int)
-		fp:write(packed)
-		
-		count = count + 1
+		local w = wins[state]
+		if w then
+			local int = (w << 30) | state
+			local packed = string.pack(pack_fmt, int)
+			fp:write(packed)
+			
+			count = count + 1
+		end
 	end
 
 	fp:close()

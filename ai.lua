@@ -10,7 +10,7 @@ local function load_all_data(data_str)
 	while index < #data_str do
 
 		local int, next_index = string.unpack(pack_fmt, data_str, index)
-		
+
 		local w = int >> 30
 		local state = int & 0x3fffffff
 
@@ -18,7 +18,7 @@ local function load_all_data(data_str)
 
 		index = next_index
 	end
-	
+
 	return win
 end
 
@@ -42,9 +42,9 @@ local function max_for(elements, func)
 end
 
 local function state_score(int, player)
-	
+
 	local s = tobito.int_to_state(int)
-	
+
 	local sum = 0
 	for cell = 0,tobito.MaxCell do
 		if s[cell] == player then
@@ -56,7 +56,7 @@ local function state_score(int, player)
 			end
 		end
 	end
-	
+
 	return sum
 end
 
@@ -66,16 +66,16 @@ local function decide_state(int, win, strategy, exclude)
 	local player = state.next_player
 	local other = player == tobito.Top and tobito.Bottom or tobito.Top
 	local m = (player == tobito.Top) and 1 or -1
-	
+
 	local funcs = {}
 	funcs.aggressive = function(s)
-		return 1000 * m * win[s] + 10 * state_score(s, player) - 1 * state_score(s, other)
+		return 10000 * m * (win[s] or 0) + 100 * state_score(s, player) - 1 * state_score(s, other)
 	end
 	funcs.balanced = function(s)
-		return 1000 * m * win[s] + 10 * state_score(s, player) - 10 * state_score(s, other)
+		return 10000 * m * (win[s] or 0) + 100 * state_score(s, player) - 100 * state_score(s, other)
 	end
 	funcs.prudent = function(s)
-		return 1000 * m * win[s] + 1 * state_score(s, player) - 10 * state_score(s, other)
+		return 10000 * m * (win[s] or 0) + 1 * state_score(s, player) - 100 * state_score(s, other)
 	end
 
 	local children = {}

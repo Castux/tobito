@@ -1,10 +1,11 @@
 local Empty = 0
 local Top = 1
 local Bottom = 2
+local Neutral = 3
 
 local MaxCell = 14
 
-local function start_state()
+local function start_state(player, neutral)
 	local s = {}
 
 	for i = 0,MaxCell do
@@ -19,7 +20,11 @@ local function start_state()
 		s[i] = Bottom
 	end
 
-	s.next_player = Top
+	if neutral then
+		s[7] = Neutral
+	end
+
+	s.next_player = player or Top
 
 	return s
 end
@@ -29,19 +34,24 @@ local function state_to_int(s)
 	local i = 0
 	local top_index = 0
 	local bottom_index = 3
+	local neutral_index = 6
 
 	for cell = 0,MaxCell do
 		if s[cell] == Top then
 			i = i | (cell << (top_index * 4))
 			top_index = top_index + 1
-			
+
 		elseif s[cell] == Bottom then
 			i = i | (cell << (bottom_index * 4))
 			bottom_index = bottom_index + 1
+
+		elseif s[cell] == Neutral then
+			i = i | (cell << (neutral_index * 4))
+
 		end
 	end
 
-	i = i | (s.next_player << 24)
+	i = i | (s.next_player << 28)
 
 	return i
 end
@@ -54,12 +64,18 @@ local function int_to_state(int, s)
 		s[cell] = Empty
 	end
 
-	for i = 0,5 do
+	for i = 0,6 do
 		local cell = (int >> (i * 4)) & 0xf
-		s[cell] = (i < 3) and Top or Bottom
+		if i < 3 then
+			s[cell] = Top
+		elseif i < 6 then
+			s[cell] = Bottom
+		elseif cell ~= 0 then
+			s[cell] = Neutral
+		end
 	end
 
-	s.next_player = (int >> 24) & 0x3
+	s.next_player = (int >> 28) & 0x3
 
 	return s
 end
@@ -75,6 +91,7 @@ local function draw_state(s)
 		table.insert(res,
 			s[i] == Top and "T" or
 			s[i] == Bottom and "B" or
+			s[i] == Neutral and "N" or
 			"."
 		)
 		if i % 3 == 2 then
@@ -163,6 +180,36 @@ local function relocations(s, num, avoid)
 	return coroutine.wrap(function() rec(1) end)
 end
 
+local function neutral_relocations(s, num, avoid, other_relocs)
+
+	return coroutine.wrap(function()
+			
+			local function taken(cell)
+				for _,v in ipairs(other_relocs) do
+					if cell == v then
+						return true
+					end
+				end
+
+				return false
+			end
+			
+			local res = {}
+			
+			if num == 0 then
+				coroutine.yield(res)
+				return
+			end
+
+			for cell = 3,11 do
+				if s[cell] == Empty and cell ~= avoid and not taken(cell) then
+					res[1] = cell
+					coroutine.yield(res)
+				end
+			end
+		end)
+end
+
 local function movable_pawn(s, cell)
 
 	if s[cell] == Top then
@@ -200,6 +247,7 @@ local function moves_from_cell(s, cell)
 			for _,dir in ipairs(Moves[cell]) do
 
 				local jumped = {}
+				local jumped_neutral = {}
 
 				for i,dest in ipairs(dir) do
 					if s[dest] == Empty then
@@ -211,19 +259,29 @@ local function moves_from_cell(s, cell)
 						end
 
 						for reloc in relocations(s, #jumped, dest) do
-							local move = {cell, dest}
+							for neutral_reloc in neutral_relocations(s, #jumped_neutral, dest, reloc) do
+									
+								local move = {cell, dest}
 
-							for i = 1,#jumped do
-								table.insert(move, jumped[i])
-								table.insert(move, reloc[i])
+								for i = 1,#jumped do
+									table.insert(move, jumped[i])
+									table.insert(move, reloc[i])
+								end
+								
+								for i = 1,#jumped_neutral do
+									table.insert(move, jumped_neutral[i])
+									table.insert(move, neutral_reloc[i])
+								end
+
+								coroutine.yield(move)
 							end
-
-							coroutine.yield(move)
 						end
 
 						::skip::
 
 						break
+					elseif s[dest] == Neutral then
+						table.insert(jumped_neutral, dest)
 
 					elseif s[dest] ~= s.next_player then
 						table.insert(jumped, dest)
@@ -268,7 +326,7 @@ local function valid_moves(s, exclude)
 
 					apply_move(s, move)
 					local child_int = state_to_int(s)
-					
+
 					if not exclude[child_int] and not home_row_full(s, player) then
 						coroutine.yield(move, child_int)
 					end
@@ -284,6 +342,7 @@ return
 	Top = Top,
 	Bottom = Bottom,
 	Empty = Empty,
+	Neutral = Neutral,
 	MaxCell = MaxCell,
 
 	state_to_int = state_to_int,
