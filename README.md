@@ -6,7 +6,7 @@ Its two players version is small enough to be fully solved by computer (191390 g
 
 The start positions are draws, as two perfect players will repeat positions indefinitely to avoid losing.
 
-This web implementation features an unbeatable perfect AI, to train and learn about the game.
+This [web implementation](https://castux.github.io/tobito/) features an unbeatable perfect AI, to train and learn about the game.
 
 ## Solver
 
